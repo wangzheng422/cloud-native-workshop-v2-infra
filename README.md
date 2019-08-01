@@ -1,36 +1,37 @@
-Cloud-Native Workshop Installer v2 [![Build Status](https://travis-ci.org/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra.svg?branch=ocp-3.11)](https://travis-ci.org/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra)
+The Containers and Cloud-Native Roadshow - Dev Track Installer
 =========
 
-The provided Ansible Playbook Bundle automates preparing an OpenShift cluster for the Cloud-Native Labs 
-by deploying required services (lab instructions, Gogs, Nexus, etc) which are used during the labs.
+The repo enables you to create **the Containers and Cloud-Native Roadshow - Dev Track**
+by deploying required services (lab instructions, CodeReady Workspace, RH-SSO, RHAMT, Istio, and more) which are used during the labs.
 
-The instructions for using this APB are as follows:
+== Prerequisites
 
-Step 1: 
-Make sure you have the right settings for looking up Quay for the apb
-Goto the ansible-service-broker project, and in the configMap add the following entry.
- 
-   ```
-  - type: quay
-    name: openshiftlabs
-    url: https://quay.io 
-    org: openshiftlabs
-    tag: ocp-3.11
-    white_list:
-      - ".*-apb$" 
-  ```      
-  
+Assumes you have a running OpenShift 4 cluster(i.e. RHPDS) and have:
 
-If running via your own machine you can run the following command  
+- https://github.com/mikefarah/yq[`yq`] (YAML processor)
+- OpenShift 4 CLI `oc` for your environment from https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/.
 
-  ```
-  oc new-project labs-infra
+[IMPORTANT]
+====
+If you not have OCP4 cluster then please proceed to https://try.openshift.com[try.openshift.com] to get one installed and configured before proceeding to next section.
+====
 
-  oc run apb --restart=Never --image="quay.io/openshiftlabs/cloudnative-workshop-v2-apb:ocp-3.11" \
--- provision -vvv -e namespace="labs-infra" -e openshift_token=$(oc whoami -t) -e infrasvcs_gogs_user_count=50 -e requested_cpu=2 -e requested_memory=4Gi -e modules=m1,m4
-  ```
+== Create a new Lab Environment
 
-to follow the logs
-  ```
-  oc logs apb -f
-  ```
+Login to OpenShift with `cluster-admin` privileges and run. If you want to run on RHPDS, use `opentlc-mgr` credential:
+
+[source, none]
+```
+setup/preparelab-ccn.sh -c [COUNT] -m [MODUEL_TYPE]
+
+example: setup/preparelab-ccn.sh -c 50 m=m1,m2,m3,m4
+```
+
+== Delete an exsiting Lab Environment
+
+Login to OpenShift with `cluster-admin` privileges and run. If you want to run on RHPDS, use `opentlc-mgr` credential:
+
+[source, none]
+```
+setup/resetlab-ccn.sh
+```
