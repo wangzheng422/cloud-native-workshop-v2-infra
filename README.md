@@ -1,7 +1,7 @@
-The Containers and Cloud-Native Roadshow Dev Track Installer
+The Containers and Cloud-Native Roadshow Installer
 ===
 
-The repo enables you to create **the Containers and Cloud-Native Roadshow - Dev Track**
+This repositpry enables you to create **the Containers and Cloud-Native Roadshow - Dev Track**
 by deploying required services (lab instructions, CodeReady Workspace, RH-SSO, RHAMT, Istio, and more) which are used during the labs.
 
 Prerequisites
@@ -15,7 +15,8 @@ Assumes you have a running OpenShift 4 cluster(i.e. RHPDS) and have:
 IMPORTANT
 =====
 
-> If you not have OCP4 cluster then please proceed to https://try.openshift.com[try.openshift.com] to get one installed and configured before proceeding to next section.
+If you not have OCP4 cluster then please proceed to https://try.openshift.com[try.openshift.com] to get one 
+installed and configured before proceeding to next section.
 
 Create a new Lab Environment
 ===
