@@ -437,13 +437,17 @@ SSO_CHE_TOKEN=$(curl -s -d "username=admin&password=admin&grant_type=password&cl
   -X POST http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/realms/codeready/protocol/openid-connect/token | \
   jq  -r '.access_token')
 
-curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
-    --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @${MYDIR}/../files/stack-ccn.json \
-    "http://codeready-labs-infra.$HOSTNAME_SUFFIX/api/stack"
+STACK_RESULT=$(curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
+    --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @files/stack-ccn.json \
+    "http://codeready-labs-infra.$HOSTNAME_SUFFIX/api/stack")
 
-# MANUALLY set permissions according to
-# https://access.redhat.com/documentation/en-us/red_hat_codeready_workspaces/1.2/html/administration_guide/administering_workspaces#stacks
-# THEN
+STACK_ID=$(echo $STACK_RESULT | jq -r '.id')
+
+# Give all users access to the stack
+echo -e "Giving all users access to the stack...\n"
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
+    --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d '{"userId": "*", "domainId": "stack", "instanceId": "'"$STACK_ID"'", "actions": [ "read", "search" ]}' \
+    "http://codeready-labs-infra.$HOSTNAME_SUFFIX/api/permissions"
 
 # Scale the cluster
 WORKERCOUNT=$(oc get nodes|grep worker | wc -l)
