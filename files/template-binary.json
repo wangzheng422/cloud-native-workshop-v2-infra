@@ -120,7 +120,7 @@
                         "from": {
                             "kind": "ImageStreamTag",
                             "namespace": "${IMAGE_STREAM_NAMESPACE}",
-                            "name": "jboss-eap70-openshift:1.6"
+                            "name": "jboss-eap72-openshift:1.0"
                         }
                     }
                 },
@@ -384,7 +384,7 @@
                             "from": {
                                 "kind": "ImageStreamTag",
                                 "namespace": "${IMAGE_STREAM_NAMESPACE}",
-                                "name": "postgresql:9.4"
+                                "name": "postgresql:10"
                             }
                         }
                     },
@@ -408,7 +408,7 @@
                         "terminationGracePeriodSeconds": 60,
                         "containers": [{
                             "name": "coolstore-postgresql",
-                            "image": "postgresql",
+                            "image": "postgresql:10",
                             "imagePullPolicy": "Always",
                             "readinessProbe": {
                                 "exec": {

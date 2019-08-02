@@ -53,6 +53,11 @@ fi
 # Make the admin as cluster admin
 oc adm policy add-cluster-role-to-user cluster-admin opentlc-mgr
 
+# Add view role of default namespace to all userXX
+for i in $(eval echo "{0..$USERCOUNT}") ; do
+  oc adm policy add-role-to-user view user$i -n default
+done
+
 # create labs-infra project
 oc new-project labs-infra
 
