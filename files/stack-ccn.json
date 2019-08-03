@@ -7,7 +7,7 @@
       "default": {
         "recipe": {
           "type": "dockerimage",
-          "content": "image-registry.openshift-image-registry.svc:5000/openshift/quarkus-stack:1.0"
+          "content": "quay.io/openshiftlabs/cloudnative-workspaces-quarkus:1.2"
         },
         "machines": {
           "dev-machine": {
