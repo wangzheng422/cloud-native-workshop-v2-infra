@@ -6,10 +6,10 @@
             "iconClass" : "icon-sso",
             "tags" : "sso,keycloak,jboss",
             "version": "rh-sso-7.2-v1.2.0",
-            "openshift.io/display-name": "Red Hat Single Sign-On 7.2 + PostgreSQL (Persistent)",
+            "openshift.io/display-name": "Red Hat Single Sign-On 7.2 + PostgreSQL",
             "openshift.io/provider-display-name": "Red Hat, Inc.",
             "description": "An example RH-SSO 7 application with a PostgreSQL database. For more information about using this template, see https://github.com/jboss-openshift/application-templates.",
-            "template.openshift.io/long-description": "This template defines resources needed to develop Red Hat Single Sign-On 7.2 server based deployment, deployment configuration for PostgreSQL using persistence, and securing RH-SSO communication using re-encrypt TLS.",
+            "template.openshift.io/long-description": "This template defines resources needed to develop Red Hat Single Sign-On 7.2 server based deployment, deployment configuration for PostgreSQL and securing RH-SSO communication using re-encrypt TLS.",
             "template.openshift.io/documentation-url": "https://access.redhat.com/documentation/en/red-hat-single-sign-on/",
             "template.openshift.io/support-url": "https://access.redhat.com"
         },
@@ -165,7 +165,7 @@
             "displayName": "PostgreSQL Image Stream Tag",
             "description": "The tag to use for the \"postgresql\" image stream.  Typically, this aligns with the major.minor version of PostgreSQL.",
             "name": "POSTGRESQL_IMAGE_STREAM_TAG",
-            "value": "9.5",
+            "value": "10",
             "required": true
         },
         {
@@ -569,7 +569,7 @@
                         "containers": [
                             {
                                 "name": "${APPLICATION_NAME}-postgresql",
-                                "image": "postgresql",
+                                "image": "postgresql:10",
                                 "imagePullPolicy": "Always",
                                 "ports": [
                                     {
@@ -594,7 +594,7 @@
                                 "volumeMounts": [
                                     {
                                         "mountPath": "/var/lib/pgsql/data",
-                                        "name": "${APPLICATION_NAME}-postgresql-pvol"
+                                        "name": "${APPLICATION_NAME}-postgresql-1"
                                     }
                                 ],
                                 "env": [
@@ -627,32 +627,10 @@
                         ],
                         "volumes": [
                             {
-                                "name": "${APPLICATION_NAME}-postgresql-pvol",
-                                "persistentVolumeClaim": {
-                                    "claimName": "${APPLICATION_NAME}-postgresql-claim"
-                                }
+                                "name": "${APPLICATION_NAME}-postgresql-1",
+                                "emptyDir:": {}
                             }
                         ]
-                    }
-                }
-            }
-        },
-        {
-            "apiVersion": "v1",
-            "kind": "PersistentVolumeClaim",
-            "metadata": {
-                "name": "${APPLICATION_NAME}-postgresql-claim",
-                "labels": {
-                    "application": "${APPLICATION_NAME}"
-                }
-            },
-            "spec": {
-                "accessModes": [
-                    "ReadWriteOnce"
-                ],
-                "resources": {
-                    "requests": {
-                        "storage": "${VOLUME_CAPACITY}"
                     }
                 }
             }
