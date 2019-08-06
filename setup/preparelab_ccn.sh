@@ -162,25 +162,19 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
   done
 done
 
-# Setup Istio Service Mesh
-oc get project istio-operator 
-RESULT=$? 
-if [ $RESULT -eq 0 ]; then
-  echo -e "istio-operator already exists..."
-elif [ -z "${MODULE_TYPE##*m3*}" ] ; then
-  echo -e "Installing istio-operator..."
-  oc new-project istio-operator
-  oc apply -n istio-operator -f $MYDIR/../files/servicemesh-operator.yaml
-fi
-
+# Setup Istio Service Mesh 
 oc get project istio-system 
 RESULT=$? 
 if [ $RESULT -eq 0 ]; then
   echo -e "istio-system already exists..."
 elif [ -z "${MODULE_TYPE##*m3*}" ] ; then
-  echo -e "Deploying the Istio Control Plane with Single-Tenant..."
   oc new-project istio-system
+  echo -e "Installing the Kiali Operator..."
+  bash <(curl -L https://git.io/getLatestKialiOperator) --operator-image-version v1.0.0 --operator-watch-namespace '**' --accessible-namespaces '**' --operator-install-kiali false
+  oc apply -n istio-system -f https://raw.githubusercontent.com/kiali/kiali/v1.0.0/operator/deploy/kiali/kiali_cr.yaml
+  echo -e "Deploying the Istio Control Plane with Single-Tenant..."
   oc create -n istio-system -f $MYDIR/../files/servicemeshcontrolplane.yaml
+  oc apply -n istio-system -f https://raw.githubusercontent.com/kiali/kiali/v1.0.0/operator/deploy/kiali/kiali_cr.yaml
 fi
 
 # Create coolstore & bookinfo projects for each user

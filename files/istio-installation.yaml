@@ -1,0 +1,67 @@
+apiVersion: maistra.io/v1
+kind: ServiceMeshControlPlane
+metadata:
+  name: basic-install
+
+  threeScale:
+    enabled: false
+
+  istio:
+    global:
+      proxy:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+      multitenant: false
+      mtls:
+        enabled: false
+
+    gateways:
+      istio-egressgateway:
+        autoscaleEnabled: false
+      istio-ingressgateway:
+        autoscaleEnabled: false
+        ior_enabled: false
+
+    mixer:
+      policy:
+        autoscaleEnabled: false
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+      telemetry:
+        autoscaleEnabled: false
+        resources:
+          requests:
+            cpu: 100m
+            memory: 1G
+          limits:
+            cpu: 500m
+            memory: 4G
+
+    pilot:
+      resources:
+        requests:
+          cpu: 100m
+      autoscaleEnabled: false
+      traceSampling: 100.0
+
+    kiali:
+      enabled: true
+      hub: kiali/
+      tag: v01.0.0
+    tracing:
+      enabled: false
+      hub: registry.redhat.io/openshift-istio-tech-preview/
+      jaeger:
+        tag: 1.13.1
+        template: all-in-one
+        agentStrategy: DaemonSet
