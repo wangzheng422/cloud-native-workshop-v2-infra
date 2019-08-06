@@ -111,6 +111,9 @@ spec:
             memory: 128Mi
     kiali:
       enabled: true
+      dashboard:
+          user: admin
+          passphrase: admin
       tag: 1.0.0
     tracing:
       enabled: true
