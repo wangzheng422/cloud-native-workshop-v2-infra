@@ -20,10 +20,8 @@ spec:
     #     VALID_TOKEN: true
     global:
       # force to use rhel7 based proxy-init container
-      proxy_init:
-        image: proxy-init
       hub: registry.redhat.io/openshift-istio-tech-preview
-      tag: 0.11.1
+      tag: 0.12.0
       # the following lines enable tls across the control and data planes
       controlPlaneSecurityEnabled: false
       mtls:
@@ -113,8 +111,8 @@ spec:
             memory: 128Mi
     kiali:
       enabled: true
-      tag: 0.20.0
+      tag: 1.0.0
     tracing:
       enabled: true
       hub: distributed-tracing-tech-preview
-      tag: 1.11
+      tag: 1.13
