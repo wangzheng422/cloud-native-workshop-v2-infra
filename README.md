@@ -27,7 +27,7 @@ Login to OpenShift with `cluster-admin` privileges and run. If you want to run o
 ```
 setup/preparelab-ccn.sh -c [COUNT] -m [MODUEL_TYPE]
 
-example: setup/preparelab-ccn.sh -c 50 m=m1,m2,m3,m4
+example: setup/preparelab-ccn.sh -c 50 -m m1,m2,m3,m4
 ```
 
 Delete an exsiting Lab Environment
