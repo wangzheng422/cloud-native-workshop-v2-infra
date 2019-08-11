@@ -206,6 +206,10 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
     oc adm policy add-role-to-user admin user$i -n user$i-bookinfo 
     oc adm policy add-role-to-user view user$i -n istio-system 
   fi
+  if [ -z "${MODULE_TYPE##*m4*}" ] ; then
+    oc new-project user$i-cloudnativeapps 
+    oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
+  fi
 done
 
 # deploy guides
