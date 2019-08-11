@@ -92,15 +92,16 @@ oc create -f $MYDIR/../files/template-prod.json -n openshift
 oc create -f $MYDIR/../files/ccn-sso72-template.json -n openshift
 
 # deploy rhamt
-oc project labs-infra
-oc process -f $MYDIR/../files/web-template-empty-dir-executor.json \
-    -p WEB_CONSOLE_REQUESTED_CPU=$REQUESTED_CPU \
-    -p WEB_CONSOLE_REQUESTED_MEMORY=$REQUESTED_MEMORY \
-    -p EXECUTOR_REQUESTED_CPU=$REQUESTED_CPU \
-    -p EXECUTOR_REQUESTED_MEMORY=2Gi | oc create -f -
+if [ -z "${MODULE_TYPE##*m1*}" ] ; then
+  oc -n labs-infra process -f $MYDIR/../files/web-template-empty-dir-executor.json \
+      -p WEB_CONSOLE_REQUESTED_CPU=$REQUESTED_CPU \
+      -p WEB_CONSOLE_REQUESTED_MEMORY=$REQUESTED_MEMORY \
+      -p EXECUTOR_REQUESTED_CPU=$REQUESTED_CPU \
+      -p EXECUTOR_REQUESTED_MEMORY=2Gi | oc create -f -
+fi
 
 # deploy gogs
-oc new-app -f $MYDIR/../files/gogs-template.yaml \
+oc -n labs-infra new-app -f $MYDIR/../files/gogs-template.yaml \
       -p HOSTNAME=gogs-labs-infra.$HOSTNAME_SUFFIX \
       -p GOGS_VERSION=0.11.34 \
       -p SKIP_TLS_VERIFY=true \
@@ -188,16 +189,18 @@ fi
 # Create coolstore & bookinfo projects for each user
 echo -e "Creating coolstore & bookinfo projects for each user... \n"
 for i in $(eval echo "{0..$USERCOUNT}") ; do
-  oc new-project user$i-inventory --display-name='USER'"$i"' CoolStore Inventory Microservice Application'
-  oc adm policy add-scc-to-user anyuid -z default -n user$i-inventory 
-  oc adm policy add-scc-to-user privileged -z default -n user$i-inventory 
-  oc adm policy add-role-to-user admin user$i -n user$i-inventory
-  oc new-project user$i-catalog --display-name='USER'"$i"' CoolStore Catalog Microservice Application'
-  oc adm policy add-scc-to-user anyuid -z default -n user$i-catalog 
-  oc adm policy add-scc-to-user privileged -z default -n user$i-catalog 
-  oc adm policy add-role-to-user admin user$i -n user$i-catalog 
+  if [ -z "${MODULE_TYPE##*m1*}" ] || [ -z "${MODULE_TYPE##*m2*}" ] || [ -z "${MODULE_TYPE##*m3*}" ] ; then
+    oc new-project user$i-inventory
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-inventory 
+    oc adm policy add-scc-to-user privileged -z default -n user$i-inventory 
+    oc adm policy add-role-to-user admin user$i -n user$i-inventory
+    oc new-project user$i-catalog
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-catalog 
+    oc adm policy add-scc-to-user privileged -z default -n user$i-catalog 
+    oc adm policy add-role-to-user admin user$i -n user$i-catalog 
+  fi
   if [ -z "${MODULE_TYPE##*m3*}" ] ; then
-    oc new-project user$i-bookinfo --display-name='USER'"$i"' BookInfo Service Mesh'
+    oc new-project user$i-bookinfo 
     oc adm policy add-scc-to-user anyuid -z default -n user$i-bookinfo 
     oc adm policy add-scc-to-user privileged -z default -n user$i-bookinfo 
     oc adm policy add-role-to-user admin user$i -n user$i-bookinfo 
@@ -208,101 +211,104 @@ done
 # deploy guides
 for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
   MODULE_NO=$(echo $MODULE | cut -c 2)
-  oc new-app quay.io/osevg/workshopper --name=guides-$MODULE \
+  oc -n labs-infra new-app quay.io/osevg/workshopper --name=guides-$MODULE \
       -e MASTER_URL=$MASTER_URL \
       -e CONSOLE_URL=$CONSOLE_URL \
-      -e CHE_URL=http://codeready-labs-infra.$HOSTNAME_SUFFIX \
+      -e ECLIPSE_CHE_URL=http://codeready-labs-infra.$HOSTNAME_SUFFIX \
       -e KEYCLOAK_URL=http://keycloak-labs-infra.$HOSTNAME_SUFFIX \
+      -e GIT_URL=http://gogs-labs-infra.$HOSTNAME_SUFFIX \
       -e ROUTE_SUBDOMAIN=$HOSTNAME_SUFFIX \
       -e CONTENT_URL_PREFIX="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/master" \
       -e WORKSHOPS_URLS="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/master/_cloud-native-workshop-module$MODULE_NO.yml" \
-      -e LOG_TO_STDOUT=true -n labs-infra
-  oc expose svc/guides-$MODULE -n labs-infra
+      -e LOG_TO_STDOUT=true
+  oc -n labs-infra expose svc/guides-$MODULE
 done
 
-# Update Jenkins templates
-oc replace -f $MYDIR/../files/jenkins-ephemeral.yml -n openshift
-
-# create Jenkins project
-oc get project jenkins
-RESULT=$? 
-if [ $RESULT -eq 0 ]; then
-  echo -e "jenkins project already exists..."
-elif [ -z "${MODULE_TYPE##*m2*}" ] ; then
-  echo -e "Creating Jenkins project..."
-  oc new-project jenkins --display-name='Jenkins' --description='Jenkins CI Engine'
-  oc new-app --template=jenkins-ephemeral -l app=jenkins -p JENKINS_SERVICE_NAME=jenkins -p DISABLE_ADMINISTRATIVE_MONITORS=true
-  oc set resources dc/jenkins --limits=cpu=1,memory=2Gi --requests=cpu=1,memory=512Mi
+# update Jenkins templates and create Jenkins project
+if [ -z "${MODULE_TYPE##*m2*}" ] ; then
+  oc replace -f $MYDIR/../files/jenkins-ephemeral.yml -n openshift
+  oc get project jenkins
+  RESULT=$? 
+  if [ $RESULT -eq 0 ]; then
+    echo -e "jenkins project already exists..."
+  elif [ -z "${MODULE_TYPE##*m2*}" ] ; then
+    echo -e "Creating Jenkins project..."
+    oc new-project jenkins --display-name='Jenkins' --description='Jenkins CI Engine'
+    oc new-app --template=jenkins-ephemeral -l app=jenkins -p JENKINS_SERVICE_NAME=jenkins -p DISABLE_ADMINISTRATIVE_MONITORS=true
+    oc set resources dc/jenkins --limits=cpu=1,memory=2Gi --requests=cpu=1,memory=512Mi
+  fi
 fi
 
 # Configure RHAMT Keycloak
-echo -e "Getting access token to update RH-SSO theme \n"
-RESULT_TOKEN=$(curl -k -X POST https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/realms/master/protocol/openid-connect/token \
- -H "Content-Type: application/x-www-form-urlencoded" \
- -d "username=admin" \
- -d 'password=password' \
- -d 'grant_type=password' \
- -d 'client_id=admin-cli' | jq -r '.access_token')
+if [ -z "${MODULE_TYPE##*m1*}" ] ; then
+  echo -e "Getting access token to update RH-SSO theme \n"
+  RESULT_TOKEN=$(curl -k -X POST https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/realms/master/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin" \
+  -d 'password=password' \
+  -d 'grant_type=password' \
+  -d 'client_id=admin-cli' | jq -r '.access_token')
 
-echo -e "Updating a master realm with RH-SSO theme \n"
-RES=$(curl -s -w '%{http_code}' -o /dev/null  -k -X PUT https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/master/ \
- -H "Content-Type: application/json" \
- -H "Accept: application/json" \
- -H "Authorization: Bearer $RESULT_TOKEN" \
- -d '{ "displayName": "rh-sso", "displayNameHtml": "<strong>Red Hat</strong><sup>®</sup> Single Sign On", "loginTheme": "rh-sso", "adminTheme": "rh-sso", "accountTheme": "rh-sso", "emailTheme": "rh-sso", "accessTokenLifespan": 6000 }')
-
-if [ "$RES" = 204 ] ; then
-  echo -e "Updated a master realm with RH-SSO theme successfully...\n"
-else
-  echo -e "Failure to update a master realm with RH-SSO theme with $RES\n"
-fi
-
-echo -e "Creating RH-SSO users as many as gogs users \n"
-for i in $(eval echo "{0..$USERCOUNT}") ; do
-  RES=$(curl -s -w '%{http_code}' -o /dev/null  -k -X POST https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/rhamt/users \
+  echo -e "Updating a master realm with RH-SSO theme \n"
+  RES=$(curl -s -w '%{http_code}' -o /dev/null  -k -X PUT https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/master/ \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer $RESULT_TOKEN" \
-  -d '{ "username": "user'"$i"'", "enabled": true, "disableableCredentialTypes": [ "password" ] }')
-  if [ "$RES" = 200 ] || [ "$RES" = 201 ] || [ "$RES" = 409 ] ; then
-    echo -e "Created RH-SSO user$i successfully...\n"
+  -d '{ "displayName": "rh-sso", "displayNameHtml": "<strong>Red Hat</strong><sup>®</sup> Single Sign On", "loginTheme": "rh-sso", "adminTheme": "rh-sso", "accountTheme": "rh-sso", "emailTheme": "rh-sso", "accessTokenLifespan": 6000 }')
+
+  if [ "$RES" = 204 ] ; then
+    echo -e "Updated a master realm with RH-SSO theme successfully...\n"
   else
-    echo -e "Failure to create RH-SSO user$i with $RES\n"
+    echo -e "Failure to update a master realm with RH-SSO theme with $RES\n"
   fi
-done
 
-echo -e "Retrieving RH-SSO user's ID list \n"
-USER_ID_LIST=$(curl -k -X GET https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/rhamt/users/ \
--H "Accept: application/json" \
--H "Authorization: Bearer $RESULT_TOKEN")
-echo -e "USER_ID_LIST: $USER_ID_LIST \n"
-
-echo -e "Getting access token to reset passwords \n"
-export RESULT_TOKEN=$(curl -k -X POST https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/realms/master/protocol/openid-connect/token \
- -H "Content-Type: application/x-www-form-urlencoded" \
- -d "username=admin" \
- -d 'password=password' \
- -d 'grant_type=password' \
- -d 'client_id=admin-cli' | jq -r '.access_token')
-echo -e "RESULT_TOKEN: $RESULT_TOKEN \n"
-
-echo -e "Reset passwords for each RH-SSO user \n"
-for i in $(jq '. | keys | .[]' <<< "$USER_ID_LIST"); do
-  USER_ID=$(jq -r ".[$i].id" <<< "$USER_ID_LIST")
-  USER_NAME=$(jq -r ".[$i].username" <<< "$USER_ID_LIST")
-  if [ "$USER_NAME" != "rhamt" ] ; then 
-     RES=$(curl -s -w '%{http_code}' -o /dev/null -k -X PUT https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/rhamt/users/$USER_ID/reset-password \
-      -H "Content-Type: application/json" \
-      -H "Accept: application/json" \
-      -H "Authorization: Bearer $RESULT_TOKEN" \
-      -d '{ "type": "password", "value": "'"$GOGS_PWD"'", "temporary": true}')
-    if [ "$RES" = 204 ] ; then
-      echo -e "user$i password is reset successfully...\n"
+  echo -e "Creating RH-SSO users as many as gogs users \n"
+  for i in $(eval echo "{0..$USERCOUNT}") ; do
+    RES=$(curl -s -w '%{http_code}' -o /dev/null  -k -X POST https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/rhamt/users \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json" \
+    -H "Authorization: Bearer $RESULT_TOKEN" \
+    -d '{ "username": "user'"$i"'", "enabled": true, "disableableCredentialTypes": [ "password" ] }')
+    if [ "$RES" = 200 ] || [ "$RES" = 201 ] || [ "$RES" = 409 ] ; then
+      echo -e "Created RH-SSO user$i successfully...\n"
     else
-      echo -e "Failure to reset user$i password with $RES\n"
+      echo -e "Failure to create RH-SSO user$i with $RES\n"
     fi
-  fi
-done
+  done
+
+  echo -e "Retrieving RH-SSO user's ID list \n"
+  USER_ID_LIST=$(curl -k -X GET https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/rhamt/users/ \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer $RESULT_TOKEN")
+  echo -e "USER_ID_LIST: $USER_ID_LIST \n"
+
+  echo -e "Getting access token to reset passwords \n"
+  export RESULT_TOKEN=$(curl -k -X POST https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/realms/master/protocol/openid-connect/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=admin" \
+  -d 'password=password' \
+  -d 'grant_type=password' \
+  -d 'client_id=admin-cli' | jq -r '.access_token')
+  echo -e "RESULT_TOKEN: $RESULT_TOKEN \n"
+
+  echo -e "Reset passwords for each RH-SSO user \n"
+  for i in $(jq '. | keys | .[]' <<< "$USER_ID_LIST"); do
+    USER_ID=$(jq -r ".[$i].id" <<< "$USER_ID_LIST")
+    USER_NAME=$(jq -r ".[$i].username" <<< "$USER_ID_LIST")
+    if [ "$USER_NAME" != "rhamt" ] ; then 
+      RES=$(curl -s -w '%{http_code}' -o /dev/null -k -X PUT https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/rhamt/users/$USER_ID/reset-password \
+        -H "Content-Type: application/json" \
+        -H "Accept: application/json" \
+        -H "Authorization: Bearer $RESULT_TOKEN" \
+        -d '{ "type": "password", "value": "'"$GOGS_PWD"'", "temporary": true}')
+      if [ "$RES" = 204 ] ; then
+        echo -e "user$i password is reset successfully...\n"
+      else
+        echo -e "Failure to reset user$i password with $RES\n"
+      fi
+    fi
+  done
+fi
 
 # Install Che
 echo -e "Installing CodeReady Workspace...\n"
