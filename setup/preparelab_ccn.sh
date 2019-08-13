@@ -93,11 +93,11 @@ oc create -f $MYDIR/../files/ccn-sso72-template.json -n openshift
 
 # deploy rhamt
 if [ -z "${MODULE_TYPE##*m1*}" ] ; then
-  oc -n labs-infra process -f $MYDIR/../files/web-template-empty-dir-executor.json \
+  oc process -f $MYDIR/../files/web-template-empty-dir-executor.json \
       -p WEB_CONSOLE_REQUESTED_CPU=$REQUESTED_CPU \
       -p WEB_CONSOLE_REQUESTED_MEMORY=$REQUESTED_MEMORY \
       -p EXECUTOR_REQUESTED_CPU=$REQUESTED_CPU \
-      -p EXECUTOR_REQUESTED_MEMORY=2Gi | oc create -f -
+      -p EXECUTOR_REQUESTED_MEMORY=2Gi | oc create -n labs-infra  -f -
 fi
 
 # deploy gogs
