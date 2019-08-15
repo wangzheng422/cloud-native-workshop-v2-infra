@@ -7,6 +7,8 @@ function usage() {
     echo "usage: $(basename $0) [-c/--count usercount] -m/--module-type module_type"
 }
 
+exec &> logfile.txt
+
 # Defaults
 USERCOUNT=10
 MODULE_TYPE=m1
