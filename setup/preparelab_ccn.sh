@@ -7,7 +7,7 @@ function usage() {
     echo "usage: $(basename $0) [-c/--count usercount] -m/--module-type module_type"
 }
 
-exec &> logfile.txt
+#exec > logfile.txt
 
 # Defaults
 USERCOUNT=10
@@ -53,7 +53,7 @@ if [ ! "$(oc get clusterrolebindings)" ] ; then
 fi
 
 # Make the admin as cluster admin
-oc adm policy add-cluster-role-to-user cluster-admin opentlc-mgr
+oc adm policy add-cluster-role-to-user cluster-admin $(oc whoami)
 
 # Add view role of default namespace to all userXX
 for i in $(eval echo "{0..$USERCOUNT}") ; do
@@ -82,11 +82,12 @@ oc new-project $TMP_PROJ
 oc create route edge dummy --service=dummy --port=8080 -n $TMP_PROJ
 ROUTE=$(oc get route dummy -o=go-template --template='{{ .spec.host }}' -n $TMP_PROJ)
 HOSTNAME_SUFFIX=$(echo $ROUTE | sed 's/^dummy-'${TMP_PROJ}'\.//g')
-oc delete project $TMP_PROJ
 MASTER_URL=$(oc whoami --show-server)
 CONSOLE_URL=$(oc whoami --show-console)
 
 echo -e "HOSTNAME_SUFFIX: $HOSTNAME_SUFFIX \n"
+
+oc project labs-infra
 
 # create templates for labs
 oc create -f $MYDIR/../files/template-binary.json -n openshift
@@ -315,6 +316,8 @@ if [ -z "${MODULE_TYPE##*m1*}" ] ; then
     fi
   done
 fi
+
+oc delete project $TMP_PROJ
 
 # Install Che
 echo -e "Installing CodeReady Workspace...\n"
