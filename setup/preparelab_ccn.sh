@@ -246,6 +246,17 @@ if [ -z "${MODULE_TYPE##*m2*}" ] ; then
   fi
 fi
 
+# Wait for rhamt to be running
+echo -e "Waiting for rhamt to be running... \n"
+while [ 1 ]; do
+  STAT=$(curl -s -w '%{http_code}' -o /dev/null http://rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX)
+  if [ "$STAT" = 200 ] ; then
+    break
+  fi
+  echo -n .
+  sleep 10
+done
+
 # Configure RHAMT Keycloak
 if [ -z "${MODULE_TYPE##*m1*}" ] ; then
   echo -e "Getting access token to update RH-SSO theme \n"
@@ -445,12 +456,12 @@ SSO_TOKEN=$(curl -s -d "username=${KEYCLOAK_USER}&password=${KEYCLOAK_PASSWORD}&
   jq  -r '.access_token')
 
 # Import realm 
-curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d @../files/ccnrd-realm.json \
+curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d @${MYDIR}../files/ccnrd-realm.json \
   -X POST "http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms"
 
 ## MANUALLY add ProtocolMapper to map User Roles to "groups" prefix for JWT claims
 echo "Keycloak credentials: $KEYCLOAK_USER / $KEYCLOAK_PASSWORD"
-echo "URL: http://keycloak-labs-infra.${HOTSNAME_SUFFIX}"
+echo "URL: http://keycloak-labs-infra.${HOSTNAME_SUFFIX}"
 
 # import stack image
 oc create -n openshift -f $MYDIR/../files/stack.imagestream.yaml
@@ -462,7 +473,7 @@ SSO_CHE_TOKEN=$(curl -s -d "username=admin&password=admin&grant_type=password&cl
   jq  -r '.access_token')
 
 STACK_RESULT=$(curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
-    --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @files/stack-ccn.json \
+    --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @{MYDIR}../files/stack-ccn.json \
     "http://codeready-labs-infra.$HOSTNAME_SUFFIX/api/stack")
 
 STACK_ID=$(echo $STACK_RESULT | jq -r '.id')
