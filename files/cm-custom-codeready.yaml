@@ -5,7 +5,7 @@ metadata:
     app: codeready
     component: codeready
   name: custom
-  namespace: che
+  namespace: labs-infra
 data:
   CHE_INFRA_KUBERNETES_PVC_WAIT__BOUND: 'false'
   CHE_INFRA_KUBERNETES_SERVICE__ACCOUNT__NAME: che-workspace
