@@ -396,7 +396,7 @@ apiVersion: org.eclipse.che/v1
 kind: CheCluster
 metadata:
   name: codeready
-  namespace: che
+  namespace: labs-infra
 spec:
   server:
     cheFlavor: codeready
