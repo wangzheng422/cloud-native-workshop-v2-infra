@@ -171,7 +171,7 @@ oc get project istio-operator
 RESULT=$? 
 if [ $RESULT -eq 0 ]; then
   echo -e "istio-operator already exists..."
-elif [ -z "${MODULE_TYPE##*m3*}" ] ; then
+elif [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
   echo -e "Installing istio-operator..."
   oc new-project istio-operator
   oc apply -n istio-operator -f $MYDIR/../files/servicemesh-operator.yaml
@@ -181,7 +181,7 @@ oc get project istio-system
 RESULT=$? 
 if [ $RESULT -eq 0 ]; then
   echo -e "istio-system already exists..."
-elif [ -z "${MODULE_TYPE##*m3*}" ] ; then
+elif [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
   echo -e "Deploying the Istio Control Plane with Single-Tenant..."
   oc new-project istio-system
   oc create -n istio-system -f $MYDIR/../files/servicemeshcontrolplane.yaml
@@ -211,6 +211,8 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
   fi
   if [ -z "${MODULE_TYPE##*m4*}" ] ; then
     oc new-project user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
     oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
   fi
 done
@@ -394,7 +396,7 @@ apiVersion: org.eclipse.che/v1
 kind: CheCluster
 metadata:
   name: codeready
-  namespace: labs-infra
+  namespace: che
 spec:
   server:
     cheFlavor: codeready
@@ -451,9 +453,23 @@ done
 # get keycloak admin password
 KEYCLOAK_USER="$(oc set env deployment/keycloak --list -n labs-infra|grep SSO_ADMIN_USERNAME | cut -d= -f2)"
 KEYCLOAK_PASSWORD="$(oc set env deployment/keycloak --list -n labs-infra|grep SSO_ADMIN_PASSWORD | cut -d= -f2)"
+
+# Wait for che to be back up
+echo "Waiting for keycloak to come up..."
+while [ 1 ]; do
+  STAT=$(curl -s -w '%{http_code}' -o /dev/null http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/)
+  if [ "$STAT" = 200 ] ; then
+    break
+  fi
+  echo -n .
+  sleep 10
+done
+
 SSO_TOKEN=$(curl -s -d "username=${KEYCLOAK_USER}&password=${KEYCLOAK_PASSWORD}&grant_type=password&client_id=admin-cli" \
   -X POST http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/realms/master/protocol/openid-connect/token | \
   jq  -r '.access_token')
+
+echo -e "SSO_TOKEN: $SSO_TOKEN"
 
 # Import realm 
 curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d @${MYDIR}../files/ccnrd-realm.json \
