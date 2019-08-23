@@ -187,12 +187,22 @@ elif [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
   # oc apply -n istio-system -f https://raw.githubusercontent.com/kiali/kiali/v1.0.0/operator/deploy/kiali/kiali_cr.yaml
 fi
 
-# Knative Serving Operator
-# if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-# kubectl apply --selector knative.dev/crd-install=true \
-#   --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml \
-#   --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
-# fi
+# Install Custom Resource Definitions, Knative Serving, Knative Eventing
+# Run 2 times for aviod "unable to recognize issue"
+if [ -z "${MODULE_TYPE##*m4*}" ] ; then
+  for i in {1..2} ; do
+    echo -e "Install Custom Resource Definitions...[$i]"
+    kubectl apply --selector knative.dev/crd-install=true \
+      --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml \
+      --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
+  done
+  echo -e "Install Knative Serving..."
+  kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
+  --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml
+  echo -e "Install Knative Eventing..."
+  kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
+  --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
+fi
 
 # Create coolstore & bookinfo projects for each user
 echo -e "Creating coolstore & bookinfo projects for each user... \n"
@@ -473,38 +483,26 @@ SSO_TOKEN=$(curl -s -d "username=${KEYCLOAK_USER}&password=${KEYCLOAK_PASSWORD}&
   jq  -r '.access_token')
 
 # Import realm 
-# curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d @${MYDIR}/../files/ccnrd-realm.json \
-#   -X POST "http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms"
 wget https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/ccnrd-realm.json
 curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d @ccnrd-realm.json \
   -X POST "http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms"
+rm -rf cnrd-realm.json
 
 ## MANUALLY add ProtocolMapper to map User Roles to "groups" prefix for JWT claims
 echo "Keycloak credentials: $KEYCLOAK_USER / $KEYCLOAK_PASSWORD"
-
-# import stack image
-# oc create -n openshift -f ${MYDIR}/../files/stack.imagestream.yaml
-# oc import-image --all quarkus-stack -n openshift
 
 # Import stack definition
 SSO_CHE_TOKEN=$(curl -s -d "username=admin&password=admin&grant_type=password&client_id=admin-cli" \
   -X POST http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/realms/codeready/protocol/openid-connect/token | \
   jq  -r '.access_token')
 
-echo -e "SSO_CHE_TOKEN: $SSO_CHE_TOKEN"
-
-# STACK_RESULT=$(curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
-#     --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @stack-ccn.json \ 
-#     "http://codeready-labs-infra.$HOSTNAME_SUFFIX/api/stack")
 wget https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/stack-ccn.json
 STACK_RESULT=$(curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
     --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @stack-ccn.json \
     "http://codeready-labs-infra.$HOSTNAME_SUFFIX/api/stack")
-
-echo -e "STACK_RESULT: $STACK_RESULT"
+rm -rf stack-ccn.json
 
 STACK_ID=$(echo $STACK_RESULT | jq -r '.id')
-
 echo -e "STACK_ID: $STACK_ID"
 
 # Give all users access to the stack
