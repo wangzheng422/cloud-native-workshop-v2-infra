@@ -229,6 +229,8 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
     oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps 
     oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
     oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
+    oc adm policy add-role-to-user view user$i -n istio-system 
+    # oc adm policy add-role-to-user view user$i -n knative-serving
   fi
 done
 
