@@ -12,7 +12,7 @@ USERCOUNT=10
 MODULE_TYPE=m1
 REQUESTED_CPU=2
 REQUESTED_MEMORY=4Gi
-GOGS_PWD=r3dh4t1!
+GOGS_PWD=openshift
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -230,7 +230,13 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
     oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
     oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
     oc adm policy add-role-to-user view user$i -n istio-system 
-    # oc adm policy add-role-to-user view user$i -n knative-serving
+    oc create serviceaccount pipeline -n user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user privileged -z pipeline -n user$i-cloudnativeapps 
+    oc adm policy add-role-to-user edit -z pipeline -n user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps 
+    oc create -f https://raw.githubusercontent.com/redhat-developer-demos/pipelines-catalog/master/knative-client/pipeline-sa-roles.yaml -n user$i-cloudnativeapps 
+    oc policy add-role-to-user pipeline-roles -z pipeline --role-namespace=user$i-cloudnativeapps
   fi
 done
 
