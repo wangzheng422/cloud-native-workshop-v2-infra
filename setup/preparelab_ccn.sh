@@ -204,6 +204,31 @@ if [ -z "${MODULE_TYPE##*m4*}" ] ; then
   --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
 fi
 
+for i in $(eval echo "{0..$USERCOUNT}") ; do
+echo -e "Adding a knative-access-role to user$i-cloudnativeapps..."
+cat <<EOF | oc apply -n user$i-cloudnativeapps -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: knative-access-role-user$i
+rules:
+  - apiGroups: ["serving.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["eventing.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["sources.eventing.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+EOF
+done
+for i in $(eval echo "{0..$USERCOUNT}") ; do
+echo -e "Adding a knative-access-role-ser$i to user$i..."
+oc adm policy add-role-to-user knative-access-role-user$i user$i -n user$i-cloudnativeapps
+done
+fi
+
 # Create coolstore & bookinfo projects for each user
 echo -e "Creating coolstore & bookinfo projects for each user... \n"
 for i in $(eval echo "{0..$USERCOUNT}") ; do
