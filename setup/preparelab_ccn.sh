@@ -187,6 +187,42 @@ elif [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
   # oc apply -n istio-system -f https://raw.githubusercontent.com/kiali/kiali/v1.0.0/operator/deploy/kiali/kiali_cr.yaml
 fi
 
+# Create coolstore & bookinfo projects for each user
+echo -e "Creating coolstore & bookinfo projects for each user... \n"
+for i in $(eval echo "{0..$USERCOUNT}") ; do
+  if [ -z "${MODULE_TYPE##*m1*}" ] || [ -z "${MODULE_TYPE##*m2*}" ] || [ -z "${MODULE_TYPE##*m3*}" ] ; then
+    oc new-project user$i-inventory
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-inventory 
+    oc adm policy add-scc-to-user privileged -z default -n user$i-inventory 
+    oc adm policy add-role-to-user admin user$i -n user$i-inventory
+    oc new-project user$i-catalog
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-catalog 
+    oc adm policy add-scc-to-user privileged -z default -n user$i-catalog 
+    oc adm policy add-role-to-user admin user$i -n user$i-catalog 
+  fi
+  if [ -z "${MODULE_TYPE##*m3*}" ] ; then
+    oc new-project user$i-bookinfo 
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-bookinfo 
+    oc adm policy add-scc-to-user privileged -z default -n user$i-bookinfo 
+    oc adm policy add-role-to-user admin user$i -n user$i-bookinfo 
+    oc adm policy add-role-to-user view user$i -n istio-system 
+  fi
+  if [ -z "${MODULE_TYPE##*m4*}" ] ; then
+    oc new-project user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
+    oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
+    oc adm policy add-role-to-user view user$i -n istio-system 
+    oc create serviceaccount pipeline -n user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user privileged -z pipeline -n user$i-cloudnativeapps 
+    oc adm policy add-role-to-user edit -z pipeline -n user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps 
+    oc create -f https://raw.githubusercontent.com/redhat-developer-demos/pipelines-catalog/master/knative-client/pipeline-sa-roles.yaml -n user$i-cloudnativeapps 
+    oc policy add-role-to-user pipeline-roles -z pipeline --role-namespace=user$i-cloudnativeapps
+  fi
+done
+
 # Install Custom Resource Definitions, Knative Serving, Knative Eventing
 # Run 2 times for aviod "unable to recognize issue"
 if [ -z "${MODULE_TYPE##*m4*}" ] ; then
@@ -228,42 +264,6 @@ echo -e "Adding a knative-access-role-ser$i to user$i..."
 oc adm policy add-role-to-user knative-access-role-user$i user$i -n user$i-cloudnativeapps
 done
 fi
-
-# Create coolstore & bookinfo projects for each user
-echo -e "Creating coolstore & bookinfo projects for each user... \n"
-for i in $(eval echo "{0..$USERCOUNT}") ; do
-  if [ -z "${MODULE_TYPE##*m1*}" ] || [ -z "${MODULE_TYPE##*m2*}" ] || [ -z "${MODULE_TYPE##*m3*}" ] ; then
-    oc new-project user$i-inventory
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-inventory 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-inventory 
-    oc adm policy add-role-to-user admin user$i -n user$i-inventory
-    oc new-project user$i-catalog
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-catalog 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-catalog 
-    oc adm policy add-role-to-user admin user$i -n user$i-catalog 
-  fi
-  if [ -z "${MODULE_TYPE##*m3*}" ] ; then
-    oc new-project user$i-bookinfo 
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-bookinfo 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-bookinfo 
-    oc adm policy add-role-to-user admin user$i -n user$i-bookinfo 
-    oc adm policy add-role-to-user view user$i -n istio-system 
-  fi
-  if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-    oc new-project user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
-    oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
-    oc adm policy add-role-to-user view user$i -n istio-system 
-    oc create serviceaccount pipeline -n user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user privileged -z pipeline -n user$i-cloudnativeapps 
-    oc adm policy add-role-to-user edit -z pipeline -n user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps 
-    oc create -f https://raw.githubusercontent.com/redhat-developer-demos/pipelines-catalog/master/knative-client/pipeline-sa-roles.yaml -n user$i-cloudnativeapps 
-    oc policy add-role-to-user pipeline-roles -z pipeline --role-namespace=user$i-cloudnativeapps
-  fi
-done
 
 # deploy guides
 for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
