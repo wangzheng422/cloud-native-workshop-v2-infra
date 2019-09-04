@@ -225,45 +225,44 @@ done
 
 # Install Custom Resource Definitions, Knative Serving, Knative Eventing
 # Run 2 times for aviod "unable to recognize issue"
-if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  for i in {1..2} ; do
-    echo -e "Install Custom Resource Definitions...[$i]"
-    kubectl apply --selector knative.dev/crd-install=true \
-      --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml \
-      --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
-  done
-  echo -e "Install Knative Serving..."
-  kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
-  --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml
-  echo -e "Install Knative Eventing..."
-  kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
-  --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
-fi
+# if [ -z "${MODULE_TYPE##*m4*}" ] ; then
+#   for i in {1..2} ; do
+#     echo -e "Install Custom Resource Definitions...[$i]"
+#     kubectl apply --selector knative.dev/crd-install=true \
+#       --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml \
+#       --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
+#   done
+#   echo -e "Install Knative Serving..."
+#   kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
+#   --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml
+#   echo -e "Install Knative Eventing..."
+#   kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
+#   --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
 
-for i in $(eval echo "{0..$USERCOUNT}") ; do
-echo -e "Adding a knative-access-role to user$i-cloudnativeapps..."
-cat <<EOF | oc apply -n user$i-cloudnativeapps -f -
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: knative-access-role-user$i
-rules:
-  - apiGroups: ["serving.knative.dev"]
-    resources: ["*"]
-    verbs: ["*"]
-  - apiGroups: ["eventing.knative.dev"]
-    resources: ["*"]
-    verbs: ["*"]
-  - apiGroups: ["sources.eventing.knative.dev"]
-    resources: ["*"]
-    verbs: ["*"]
-EOF
-done
-for i in $(eval echo "{0..$USERCOUNT}") ; do
-echo -e "Adding a knative-access-role-ser$i to user$i..."
-oc adm policy add-role-to-user knative-access-role-user$i user$i -n user$i-cloudnativeapps
-done
-fi
+# for i in $(eval echo "{0..$USERCOUNT}") ; do
+# echo -e "Adding a knative-access-role to user$i-cloudnativeapps..."
+# cat <<EOF | oc apply -n user$i-cloudnativeapps -f -
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: Role
+# metadata:
+#   name: knative-access-role-user$i
+# rules:
+#   - apiGroups: ["serving.knative.dev"]
+#     resources: ["*"]
+#     verbs: ["*"]
+#   - apiGroups: ["eventing.knative.dev"]
+#     resources: ["*"]
+#     verbs: ["*"]
+#   - apiGroups: ["sources.eventing.knative.dev"]
+#     resources: ["*"]
+#     verbs: ["*"]
+# EOF
+# done
+# for i in $(eval echo "{0..$USERCOUNT}") ; do
+# echo -e "Adding a knative-access-role-ser$i to user$i..."
+# oc adm policy add-role-to-user knative-access-role-user$i user$i -n user$i-cloudnativeapps
+# done
+# fi
 
 # deploy guides
 for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
