@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workshop-student
+rules:
+  - apiGroups: ["serving.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["eventing.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["sources.eventing.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["messaging.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["networking.internal.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["autoscaling.internal.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["caching.internal.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]

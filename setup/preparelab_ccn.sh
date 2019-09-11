@@ -213,56 +213,83 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
     oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
     oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
     oc adm policy add-role-to-user view user$i -n istio-system 
-    oc create serviceaccount pipeline -n user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user privileged -z pipeline -n user$i-cloudnativeapps 
-    oc adm policy add-role-to-user edit -z pipeline -n user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps 
-    oc create -f https://raw.githubusercontent.com/redhat-developer-demos/pipelines-catalog/master/knative-client/pipeline-sa-roles.yaml -n user$i-cloudnativeapps 
-    oc policy add-role-to-user pipeline-roles -z pipeline --role-namespace=user$i-cloudnativeapps
+    oc adm policy add-role-to-user view user$i -n knative-serving
+    # oc create serviceaccount pipeline -n user$i-cloudnativeapps 
+    # oc adm policy add-scc-to-user privileged -z pipeline -n user$i-cloudnativeapps 
+    # oc adm policy add-role-to-user edit -z pipeline -n user$i-cloudnativeapps 
+    # oc create -f https://raw.githubusercontent.com/redhat-developer-demos/pipelines-catalog/master/knative-client/pipeline-sa-roles.yaml -n user$i-cloudnativeapps 
+    # oc policy add-role-to-user pipeline-roles -z pipeline --role-namespace=user$i-cloudnativeapps
   fi
 done
 
 # Install Custom Resource Definitions, Knative Serving, Knative Eventing
-# Run 2 times for aviod "unable to recognize issue"
-# if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-#   for i in {1..2} ; do
-#     echo -e "Install Custom Resource Definitions...[$i]"
-#     kubectl apply --selector knative.dev/crd-install=true \
-#       --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml \
-#       --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
-#   done
-#   echo -e "Install Knative Serving..."
-#   kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
-#   --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml
-#   echo -e "Install Knative Eventing..."
-#   kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
-#   --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
+if [ -z "${MODULE_TYPE##*m4*}" ] ; then
+  # Run 2 times for aviod "unable to recognize issue"
+  # for i in {1..2} ; do
+  #   echo -e "Installing Custom Resource Definitions...[$i]"
+  #   kubectl apply --selector knative.dev/crd-install=true \
+  #     --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml \
+  #     --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
+  # done
+  echo -e "Installing Knative Subscriptions..."
+  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/catalog-sources.yaml
+  
+  echo -e "Installing Knative Serving..."
+  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-serving-subscription.yaml
+  # kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
+  # --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml
+  echo -e "Installing Knative Eventing..."
+  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-eventing-subscription.yaml
+  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/kafkasource.yaml 
+  # kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
+  # --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
 
-# for i in $(eval echo "{0..$USERCOUNT}") ; do
-# echo -e "Adding a knative-access-role to user$i-cloudnativeapps..."
-# cat <<EOF | oc apply -n user$i-cloudnativeapps -f -
-# apiVersion: rbac.authorization.k8s.io/v1
-# kind: Role
-# metadata:
-#   name: knative-access-role-user$i
-# rules:
-#   - apiGroups: ["serving.knative.dev"]
-#     resources: ["*"]
-#     verbs: ["*"]
-#   - apiGroups: ["eventing.knative.dev"]
-#     resources: ["*"]
-#     verbs: ["*"]
-#   - apiGroups: ["sources.eventing.knative.dev"]
-#     resources: ["*"]
-#     verbs: ["*"]
-# EOF
-# done
-# for i in $(eval echo "{0..$USERCOUNT}") ; do
-# echo -e "Adding a knative-access-role-ser$i to user$i..."
-# oc adm policy add-role-to-user knative-access-role-user$i user$i -n user$i-cloudnativeapps
-# done
-# fi
+  echo -e "Creating Role, Group, and assign Users"
+  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/workshop-student-roles.yaml
+  for i in $(eval echo "{0..$USERCOUNT}") ; do
+      yq w -i https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/workshop-students-group.yaml "users[+]" $(printf "user%d" $i)
+  done
+  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/workshop-students-group.yaml
+  oc adm policy add-cluster-role-to-group workshop-student workshop-students
+  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/workshop-student-project-role.yaml
+  for i in $(eval echo "{0..$USERCOUNT}") ; do
+    oc policy add-role-to-user workshop-student user$i --role-namespace=user$i-cloudnativeapps -n user$i-cloudnativeapps
+  done
+fi
+
+# Install the strimzi operator for all namespaces
+cat <<EOF | oc apply -n openshift-marketplace -f -
+apiVersion: operators.coreos.com/v1
+kind: CatalogSourceConfig
+metadata:
+  finalizers:
+  - finalizer.catalogsourceconfigs.operators.coreos.com
+  name: installed-community-openshift-operators
+  namespace: openshift-marketplace
+spec:
+  csDisplayName: Community Operators
+  csPublisher: Community
+  packages: strimzi-kafka-operator
+  targetNamespace: openshift-operators
+EOF
+
+cat <<EOF | oc apply -n openshift-operators -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    csc-owner-name: installed-community-openshift-operators
+    csc-owner-namespace: openshift-marketplace
+  name: strimzi-kafka-operator
+  namespace: openshift-operators
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: strimzi-kafka-operator
+  source: installed-community-openshift-operators
+  sourceNamespace: openshift-operators
+EOF
+fi
 
 # deploy guides
 for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
