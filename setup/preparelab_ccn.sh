@@ -214,11 +214,6 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
     oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
     oc adm policy add-role-to-user view user$i -n istio-system 
     oc adm policy add-role-to-user view user$i -n knative-serving
-    # oc create serviceaccount pipeline -n user$i-cloudnativeapps 
-    # oc adm policy add-scc-to-user privileged -z pipeline -n user$i-cloudnativeapps 
-    # oc adm policy add-role-to-user edit -z pipeline -n user$i-cloudnativeapps 
-    # oc create -f https://raw.githubusercontent.com/redhat-developer-demos/pipelines-catalog/master/knative-client/pipeline-sa-roles.yaml -n user$i-cloudnativeapps 
-    # oc policy add-role-to-user pipeline-roles -z pipeline --role-namespace=user$i-cloudnativeapps
   fi
 done
 
@@ -289,6 +284,20 @@ spec:
   source: installed-community-openshift-operators
   sourceNamespace: openshift-operators
 EOF
+
+echo -e "Installing Tekton pipelines"
+oc new-project tekton-pipelines
+oc adm policy add-scc-to-user anyuid -z tekton-pipelines-controller
+oc apply --filename https://storage.googleapis.com/tekton-releases/latest/release.yaml
+
+echo -e "Creating new test-pipeline projects"
+oc new-project user$i-cloudnative-pipeline
+oc create serviceaccount pipeline
+oc adm policy add-scc-to-user privileged -z pipeline
+oc adm policy add-role-to-user edit -z pipeline
+oc delete limitranges user$i-cloudnative-pipeline-core-resource-limits
+oc adm policy add-role-to-user admin user$i -n user$i-cloudnative-pipeline
+
 fi
 
 # deploy guides
