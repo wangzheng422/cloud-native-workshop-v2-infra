@@ -219,40 +219,58 @@ done
 
 # Install Custom Resource Definitions, Knative Serving, Knative Eventing
 if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  # Run 2 times for aviod "unable to recognize issue"
-  # for i in {1..2} ; do
-  #   echo -e "Installing Custom Resource Definitions...[$i]"
-  #   kubectl apply --selector knative.dev/crd-install=true \
-  #     --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml \
-  #     --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
-  # done
   echo -e "Installing Knative Subscriptions..."
   oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/catalog-sources.yaml
   
   echo -e "Installing Knative Serving..."
   oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-serving-subscription.yaml
-  # kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
-  # --filename https://github.com/knative/serving/releases/download/v0.7.1/serving.yaml
+ 
   echo -e "Installing Knative Eventing..."
   oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-eventing-subscription.yaml
-  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/kafkasource.yaml 
-  # kubectl apply --selector networking.knative.dev/certificate-provider!=cert-manager \
-  # --filename https://github.com/knative/eventing/releases/download/v0.7.1/release.yaml
 
+  echo -e "Installing Knative Kafka..."
+  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-kafka-subscription.yaml
+  
   echo -e "Creating Role, Group, and assign Users"
-  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/workshop-student-roles.yaml
-  for i in $(eval echo "{0..$USERCOUNT}") ; do
-      yq w -i https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/workshop-students-group.yaml "users[+]" $(printf "user%d" $i)
-  done
-  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/workshop-students-group.yaml
-  oc adm policy add-cluster-role-to-group workshop-student workshop-students
   oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/workshop-student-project-role.yaml
   for i in $(eval echo "{0..$USERCOUNT}") ; do
     oc policy add-role-to-user workshop-student user$i --role-namespace=user$i-cloudnativeapps -n user$i-cloudnativeapps
   done
-fi
 
-# Install the strimzi operator for all namespaces
+# Install AMQ Streams operator for all namespaces
+cat <<EOF | oc apply -n openshift-marketplace -f -
+apiVersion: operators.coreos.com/v1
+kind: CatalogSourceConfig
+metadata:
+  finalizers:
+  - finalizer.catalogsourceconfigs.operators.coreos.com
+  name: installed-redhat-openshift-operators
+  namespace: openshift-marketplace
+spec:
+  csDisplayName: Red Hat Operators
+  csPublisher: Red Hat
+  packages: amq-streams
+  targetNamespace: openshift-operators
+EOF
+
+cat <<EOF | oc apply -n openshift-operators -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  labels:
+    csc-owner-name: installed-redhat-openshift-operators
+    csc-owner-namespace: openshift-marketplace
+  name: amq-streams
+  namespace: openshift-operators
+spec:
+  channel: stable
+  installPlanApproval: Automatic
+  name: amq-streams
+  source: installed-redhat-openshift-operators
+  sourceNamespace: openshift-operators
+EOF
+
+# Install Knative Kafka operator for all namespaces
 cat <<EOF | oc apply -n openshift-marketplace -f -
 apiVersion: operators.coreos.com/v1
 kind: CatalogSourceConfig
@@ -264,7 +282,7 @@ metadata:
 spec:
   csDisplayName: Community Operators
   csPublisher: Community
-  packages: strimzi-kafka-operator
+  packages: knative-kafka-operator
   targetNamespace: openshift-operators
 EOF
 
@@ -275,12 +293,12 @@ metadata:
   labels:
     csc-owner-name: installed-community-openshift-operators
     csc-owner-namespace: openshift-marketplace
-  name: strimzi-kafka-operator
+  name: knative-kafka-operator
   namespace: openshift-operators
 spec:
-  channel: stable
+  channel: alpha
   installPlanApproval: Automatic
-  name: strimzi-kafka-operator
+  name: knative-kafka-operator
   source: installed-community-openshift-operators
   sourceNamespace: openshift-operators
 EOF
