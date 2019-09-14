@@ -226,10 +226,7 @@ if [ -z "${MODULE_TYPE##*m4*}" ] ; then
  
   echo -e "Installing Knative Eventing..."
   oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-eventing-subscription.yaml
-
-  echo -e "Installing Knative Kafka..."
-  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-kafka-subscription.yaml
-  
+ 
   for i in $(eval echo "{0..$USERCOUNT}") ; do
     oc adm policy add-role-to-user view user$i -n knative-serving
   done
@@ -335,6 +332,17 @@ spec:
   name: knative-kafka-operator
   source: installed-community-openshift-operators
   sourceNamespace: openshift-operators
+EOF
+
+cat <<EOF | oc create -f -
+apiVersion: eventing.knative.dev/v1alpha1
+kind: KnativeEventingKafka
+metadata:
+  name: knative-eventing-kafka
+  namespace: knative-eventing
+spec:
+  bootstrapServers: "DUMMY:9092"
+  setAsDefaultChannelProvisioner: no
 EOF
 
 echo -e "Installing Tekton pipelines"
