@@ -213,7 +213,6 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
     oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
     oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
     oc adm policy add-role-to-user view user$i -n istio-system 
-    oc adm policy add-role-to-user view user$i -n knative-serving
   fi
 done
 
@@ -231,11 +230,46 @@ if [ -z "${MODULE_TYPE##*m4*}" ] ; then
   echo -e "Installing Knative Kafka..."
   oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-kafka-subscription.yaml
   
-  echo -e "Creating Role, Group, and assign Users"
-  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/workshop-student-project-role.yaml
   for i in $(eval echo "{0..$USERCOUNT}") ; do
-    oc policy add-role-to-user workshop-student user$i --role-namespace=user$i-cloudnativeapps -n user$i-cloudnativeapps
+    oc adm policy add-role-to-user view user$i -n knative-serving
   done
+
+echo -e "Creating Role, Group, and assign Users"
+for i in $(eval echo "{0..$USERCOUNT}") ; do
+cat <<EOF | oc apply -n user$i-cloudnativeapps -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workshop-student$i
+rules:
+  - apiGroups: ["serving.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["eventing.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["sources.eventing.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["messaging.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["networking.internal.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["autoscaling.internal.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["caching.internal.knative.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["tekton.dev"]
+    resources: ["*"]
+    verbs: ["*"]
+EOF
+sleep 2
+oc policy add-role-to-user workshop-student$i user$i --role-namespace=user$i-cloudnativeapps -n user$i-cloudnativeapps
+done
 
 # Install AMQ Streams operator for all namespaces
 cat <<EOF | oc apply -n openshift-marketplace -f -
