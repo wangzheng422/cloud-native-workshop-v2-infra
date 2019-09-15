@@ -356,7 +356,8 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
   oc create serviceaccount pipeline
   oc adm policy add-scc-to-user privileged -z pipeline
   oc adm policy add-role-to-user edit -z pipeline
-  oc delete limitranges user$i-cloudnative-pipeline-core-resource-limits
+  oc delete limitranges user0-cloudnativeapps-core-resource-limits -n user$i-cloudnativeapps
+  oc delete limitranges user$i-cloudnative-pipeline-core-resource-limits -n user$i-cloudnative-pipeline
   oc adm policy add-role-to-user admin user$i -n user$i-cloudnative-pipeline
 done
 
