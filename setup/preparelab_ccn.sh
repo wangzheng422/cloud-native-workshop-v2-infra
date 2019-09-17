@@ -334,6 +334,47 @@ spec:
   sourceNamespace: openshift-operators
 EOF
 
+# Install Kafka cluster in Knative-eventing
+cat <<EOF | oc create -f -
+apiVersion: kafka.strimzi.io/v1beta1
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: knative-eventing
+spec:
+  kafka:
+    version: 2.2.1
+    replicas: 3
+    listeners:
+      plain: {}
+      tls: {}
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      log.message.format.version: '2.2'
+    storage:
+      type: ephemeral
+  zookeeper:
+    replicas: 3
+    storage:
+      type: ephemeral
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+EOF
+
+# Wait for checluster to be a thing
+echo "Waiting for Kafka CRD"
+while [ true ] ; do
+  if [ "$(oc explain kafka -n knative-eventing)" ] ; then
+    break
+  fi
+  echo -n .
+  sleep 10
+done
+
+# Create KnativeEventingKafka in Knative-eventing
 cat <<EOF | oc create -f -
 apiVersion: eventing.knative.dev/v1alpha1
 kind: KnativeEventingKafka
@@ -341,8 +382,8 @@ metadata:
   name: knative-eventing-kafka
   namespace: knative-eventing
 spec:
-  bootstrapServers: "DUMMY:9092"
-  setAsDefaultChannelProvisioner: no
+  bootstrapServers: 'my-cluster-kafka-bootstrap.knative-eventing:9092'
+  setAsDefaultChannelProvisioner: false
 EOF
 
 echo -e "Installing Tekton pipelines"
