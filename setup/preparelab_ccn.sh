@@ -687,10 +687,28 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
 WORKERCOUNT=$(oc get nodes|grep worker | wc -l)
 if [ "$WORKERCOUNT" -lt 10 ] ; then
     for i in $(oc get machinesets -n openshift-machine-api -o name | grep worker| cut -d'/' -f 2) ; do
-      echo "Scaling $i to 3 replicas"
-      oc patch -n openshift-machine-api machineset/$i -p '{"spec":{"replicas": 3}}' --type=merge
+      echo "Scaling $i to 11 replicas"
+      oc patch -n openshift-machine-api machineset/$i -p '{"spec":{"replicas": 11}}' --type=merge
     done
 fi
+
+# import stack image
+oc create -n openshift -f $MYDIR/../files/stack.imagestream.yaml
+oc import-image --all quarkus-stack -n openshift
+
+# Pre-create workspaces for users
+for i in {1..$USERCOUNT} ; do
+    SSO_CHE_TOKEN=$(curl -s -d "username=user${i}&password=${GOGS_PWD}&grant_type=password&client_id=admin-cli" \
+        -X POST http://keycloak-che.${HOSTNAME_SUFFIX}/auth/realms/codeready/protocol/openid-connect/token | jq  -r '.access_token')
+
+    TMPWORK=$(mktemp)
+    sed 's/WORKSPACENAME/WORKSPACE'${i}'/g' $MYDIR/../files/workspace.json > $TMPWORK
+
+    curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
+    --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @${TMPWORK} \
+    "http://codeready-che.${HOSTNAME_SUFFIX}/api/workspace?start-after-create=true&namespace=user${i}"
+    rm -f $TMPWORK
+done
 
 end_time=$SECONDS
 elapsed_time_sec=$(( end_time - start_time ))
