@@ -416,6 +416,11 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
       -e ROUTE_SUBDOMAIN=$HOSTNAME_SUFFIX \
       -e CONTENT_URL_PREFIX="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/master" \
       -e WORKSHOPS_URLS="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/master/_cloud-native-workshop-module$MODULE_NO.yml" \
+      -e CHE_USER_NAME=userXX \
+      -e CHE_USER_PASSWORD=${GOGS_PWD} \
+      -e OPENSHIFT_USER_NAME=userXX \
+      -e OPENSHIFT_USER_PASSWORD=${GOGS_PWD} \
+      -e RHAMT_URL=rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX \
       -e LOG_TO_STDOUT=true
   oc -n labs-infra expose svc/guides-$MODULE
 done
@@ -663,6 +668,14 @@ rm -rf cnrd-realm.json
 ## MANUALLY add ProtocolMapper to map User Roles to "groups" prefix for JWT claims
 echo "Keycloak credentials: $KEYCLOAK_USER / $KEYCLOAK_PASSWORD"
 
+# Create Che users
+for i in $(eval echo "{0..$USERCOUNT}") ; do
+    USERNAME=user${i}
+    FIRSTNAME=User${i}
+    LASTNAME=Developer
+    curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d '{"username":"user'${i}'","enabled":true,"emailVerified": true,"firstName": "User'${i}'","lastName": "Developer","email": "user'${i}'@no-reply.com", "credentials":[{"type":"password","value":"'${GOGS_PWD}'","temporary":false}]}' -X POST "http://keycloak-labs-infra.${HOSTNAME_SUFFIX}/auth/admin/realms/codeready/users"
+done
+
 # Import stack definition
 SSO_CHE_TOKEN=$(curl -s -d "username=admin&password=admin&grant_type=password&client_id=admin-cli" \
   -X POST http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/realms/codeready/protocol/openid-connect/token | \
@@ -676,12 +689,6 @@ rm -rf stack-ccn.json
 
 STACK_ID=$(echo $STACK_RESULT | jq -r '.id')
 echo -e "STACK_ID: $STACK_ID"
-
-# Give all users access to the stack
-echo -e "Giving all users access to the stack...\n"
-curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
-    --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d '{"userId": "*", "domainId": "stack", "instanceId": "'"$STACK_ID"'", "actions": [ "read", "search" ]}' \
-    "http://codeready-labs-infra.$HOSTNAME_SUFFIX/api/permissions"
 
 # Scale the cluster
 WORKERCOUNT=$(oc get nodes|grep worker | wc -l)
@@ -697,16 +704,16 @@ oc create -n openshift -f $MYDIR/../files/stack.imagestream.yaml
 oc import-image --all quarkus-stack -n openshift
 
 # Pre-create workspaces for users
-for i in {1..$USERCOUNT} ; do
+for i in $(eval echo "{0..$USERCOUNT}") ; do
     SSO_CHE_TOKEN=$(curl -s -d "username=user${i}&password=${GOGS_PWD}&grant_type=password&client_id=admin-cli" \
-        -X POST http://keycloak-che.${HOSTNAME_SUFFIX}/auth/realms/codeready/protocol/openid-connect/token | jq  -r '.access_token')
+        -X POST http://keycloak-labs-infra.${HOSTNAME_SUFFIX}/auth/realms/codeready/protocol/openid-connect/token | jq  -r '.access_token')
 
     TMPWORK=$(mktemp)
     sed 's/WORKSPACENAME/WORKSPACE'${i}'/g' $MYDIR/../files/workspace.json > $TMPWORK
 
     curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
     --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @${TMPWORK} \
-    "http://codeready-che.${HOSTNAME_SUFFIX}/api/workspace?start-after-create=true&namespace=user${i}"
+    "http://codeready-labs-infra.${HOSTNAME_SUFFIX}/api/workspace?start-after-create=true&namespace=user${i}"
     rm -f $TMPWORK
 done
 

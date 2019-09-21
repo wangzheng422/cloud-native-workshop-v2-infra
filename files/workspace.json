@@ -51,7 +51,7 @@
         "default": {
           "recipe": {
             "type": "dockerimage",
-            "content": "image-registry.openshift-image-registry.svc:5000/openshift/quarkus-stack:1.0"
+            "content": "image-registry.openshift-image-registry.svc:5000/openshift/quarkus-stack:1.2"
           },
           "machines": {
             "dev-machine": {
