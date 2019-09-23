@@ -420,7 +420,7 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
       -e CHE_USER_PASSWORD=${GOGS_PWD} \
       -e OPENSHIFT_USER_NAME=userXX \
       -e OPENSHIFT_USER_PASSWORD=${GOGS_PWD} \
-      -e RHAMT_URL=rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX \
+      -e RHAMT_URL=http://rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX \
       -e LOG_TO_STDOUT=true
   oc -n labs-infra expose svc/guides-$MODULE
 done
@@ -700,7 +700,7 @@ if [ "$WORKERCOUNT" -lt 10 ] ; then
 fi
 
 # import stack image
-oc create -n openshift -f $MYDIR/../files/stack.imagestream.yaml
+oc create -n openshift -f ${MYDIR}/../files/stack.imagestream.yaml
 oc import-image --all quarkus-stack -n openshift
 
 # Pre-create workspaces for users
@@ -709,7 +709,7 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
         -X POST http://keycloak-labs-infra.${HOSTNAME_SUFFIX}/auth/realms/codeready/protocol/openid-connect/token | jq  -r '.access_token')
 
     TMPWORK=$(mktemp)
-    sed 's/WORKSPACENAME/WORKSPACE'${i}'/g' $MYDIR/../files/workspace.json > $TMPWORK
+    sed 's/WORKSPACENAME/WORKSPACE'${i}'/g' ${MYDIR}/../files/workspace.json > $TMPWORK
 
     curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
     --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @${TMPWORK} \
