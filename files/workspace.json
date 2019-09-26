@@ -1,8 +1,26 @@
 {
       "commands": [
         {
+          "commandLine": "mvn package -f ${current.project.path}",
+          "name": "build",
+          "type": "mvn",
+          "attributes": {
+            "goal": "Build",
+            "previewUrl": ""
+          }
+        },
+        {
+          "commandLine": "mvn clean package -f ${current.project.path}",
+          "name": "clean build",
+          "type": "mvn",
+          "attributes": {
+            "goal": "Build",
+            "previewUrl": ""
+          }
+        },
+        {
           "commandLine": "mvn verify -f ${current.project.path}",
-          "name": "Run Quarkus Tests",
+          "name": "test",
           "type": "mvn",
           "attributes": {
             "goal": "Test",
@@ -11,7 +29,7 @@
         },
         {
           "commandLine": "mvn clean compile quarkus:dev -f ${current.project.path}",
-          "name": "Start Live Coding",
+          "name": "Build and Run Locally",
           "type": "custom",
           "attributes": {
             "goal": "Run",
@@ -28,8 +46,8 @@
           }
         },
         {
-          "commandLine": "MAVEN_OPTS=\"-Xmx1024M -Xss128M -XX:MetaspaceSize=512M -XX:MaxMetaspaceSize=1024M -XX:+CMSClassUnloadingEnabled\" mvn -f ${current.project.path} clean package -DskipTests",
-          "name": "Create Executable JAR",
+          "commandLine": "MAVEN_OPTS=\"-Xmx1024M -Xss128M -XX:MetaspaceSize=512M -XX:MaxMetaspaceSize=1024M -XX:+CMSClassUnloadingEnabled\" mvn -f ${current.project.path} clean package -DskipTests -Dquarkus.profile=prod",
+          "name": "Package for OpenShift",
           "type": "custom",
           "attributes": {
             "goal": "Package",
@@ -37,12 +55,12 @@
           }
         },
         {
-          "commandLine": "mvn clean compile quarkus:dev -Ddebug -f ${current.project.path}",
-          "name": "Debug Quarkus App",
-          "type": "custom",
+          "commandLine": "mvn spring-boot:run -f ${current.project.path}",
+          "name": "run spring-boot",
+          "type": "mvn",
           "attributes": {
-            "goal": "Debug",
-            "previewUrl": "${server.8080/tcp}"
+              "goal": "Run",
+              "previewUrl": "${server.9000/tcp}"
           }
         }
       ],
