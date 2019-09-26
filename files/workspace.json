@@ -73,21 +73,30 @@
           },
           "machines": {
             "dev-machine": {
+              "env": {
+                "MAVEN_OPTS" : "-Xmx512m",
+                "MAVEN_MIRROR_URL": "http://nexus:8081/repository/maven-all-public"
+              },
               "servers": {
-                "5005/tcp": {
-                  "protocol": "http",
-                  "port": "5005",
-                  "attributes": {}
-                },
                 "8080/tcp": {
+                  "attributes": {},
                   "protocol": "http",
-                  "port": "8080",
-                  "attributes": {}
+                  "port": "8080"
                 },
                 "8000/tcp": {
+                  "attributes": {},
                   "protocol": "http",
-                  "port": "8000",
-                  "attributes": {}
+                  "port": "8000"
+                },
+                "9000/tcp": {
+                  "attributes": {},
+                  "protocol": "http",
+                  "port": "9000"
+                },
+                "9001/tcp": {
+                  "attributes": {},
+                  "protocol": "http",
+                  "port": "9001"
                 }
               },
               "volumes": {},
@@ -96,8 +105,8 @@
                 "org.eclipse.che.terminal",
                 "org.eclipse.che.ws-agent",
                 "org.eclipse.che.ls.java"
+  
               ],
-              "env": {},
               "attributes": {
                 "memoryLimitBytes": "5368709120"
               }
