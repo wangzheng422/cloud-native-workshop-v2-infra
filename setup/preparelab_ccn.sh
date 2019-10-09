@@ -626,7 +626,9 @@ done
 
 # workaround for PVC problem
 oc apply -f ${MYDIR}/../files/cm-custom-codeready.yaml
+
 oc scale -n labs-infra deployment/codeready --replicas=0
+sleep 10
 oc scale -n labs-infra deployment/codeready --replicas=1
 
 # Wait for che to be back up
@@ -699,6 +701,17 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
 # import stack image
 oc create -n openshift -f ${MYDIR}/../files/stack.imagestream.yaml
 oc import-image --all quarkus-stack -n openshift
+
+# Checking if che is up
+echo "Checking if che is up..."
+while [ 1 ]; do
+  STAT=$(curl -s -w '%{http_code}' -o /dev/null http://codeready-labs-infra.$HOSTNAME_SUFFIX/dashboard/)
+  if [ "$STAT" = 200 ] ; then
+    break
+  fi
+  echo -n .
+  sleep 10
+done
 
 # Pre-create workspaces for users
 for i in $(eval echo "{0..$USERCOUNT}") ; do
