@@ -700,6 +700,7 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
 
 # import stack image
 oc create -n openshift -f ${MYDIR}/../files/stack.imagestream.yaml
+sleep 5
 oc import-image --all quarkus-stack -n openshift
 
 # Checking if che is up
