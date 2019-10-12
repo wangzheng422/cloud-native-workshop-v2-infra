@@ -226,10 +226,6 @@ if [ -z "${MODULE_TYPE##*m4*}" ] ; then
  
   echo -e "Installing Knative Eventing..."
   oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-eventing-subscription.yaml
- 
-  for i in $(eval echo "{0..$USERCOUNT}") ; do
-    oc adm policy add-role-to-user view user$i -n knative-serving
-  done
 
 echo -e "Creating Role, Group, and assign Users"
 for i in $(eval echo "{0..$USERCOUNT}") ; do
@@ -400,6 +396,10 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
   oc delete limitranges user0-cloudnativeapps-core-resource-limits -n user$i-cloudnativeapps
   oc delete limitranges user$i-cloudnative-pipeline-core-resource-limits -n user$i-cloudnative-pipeline
   oc adm policy add-role-to-user admin user$i -n user$i-cloudnative-pipeline
+done
+
+for i in $(eval echo "{0..$USERCOUNT}") ; do
+  oc adm policy add-role-to-user view user$i -n knative-serving
 done
 
 fi
