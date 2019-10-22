@@ -49,7 +49,7 @@ spec:
             memory: 128Mi
           limits:
             cpu: 500m
-            memory: 128Mi
+            memory: 256Mi
       # sds:
       #   enabled: false
       #   udsPath: "unix:/var/run/sds/uds_path" #just a test to see if we pass the selinux hurdle
@@ -62,7 +62,7 @@ spec:
             memory: 128Mi
           limits:
             cpu: 500m
-            memory: 128Mi
+            memory: 256Mi
         autoscaleEnabled: false
         # sds:
         #   enabled: true
@@ -76,7 +76,7 @@ spec:
             memory: 128Mi
           limits:
             cpu: 500m
-            memory: 128Mi
+            memory: 256Mi
         # sds:
         #   enabled: false
         #   image: docker.io/istio/node-agent-k8s:1.1.9
@@ -89,7 +89,7 @@ spec:
             memory: 128Mi
           limits:
             cpu: 500m
-            memory: 128Mi
+            memory: 256Mi
       telemetry:
         autoscaleEnabled: false
         resources:
@@ -108,7 +108,7 @@ spec:
             memory: 128Mi
           limits:
             cpu: 500m
-            memory: 128Mi
+            memory: 256Mi
     kiali:
       enabled: true
       tag: 0.20.0
