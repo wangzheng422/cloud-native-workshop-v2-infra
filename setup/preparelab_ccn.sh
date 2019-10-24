@@ -382,6 +382,38 @@ spec:
   setAsDefaultChannelProvisioner: false
 EOF
 
+# Install OpenShift pipeline operator for all namespaces
+# cat <<EOF | oc apply -n openshift-marketplace -f -
+# apiVersion: operators.coreos.com/v1
+# kind: CatalogSourceConfig
+# metadata:
+#   name: rhd-workshop-packages
+#   namespace: openshift-marketplace
+# spec:
+#   targetNamespace: openshift-operators
+#   packages: knative-serving-operator,knative-eventing-operator,openshift-pipelines-operator
+#   source: community-operators
+# EOF
+
+# cat <<EOF | oc apply -n openshift-operators -f -
+# apiVersion: operators.coreos.com/v1alpha1
+# kind: Subscription
+# metadata:
+#   labels:
+#     csc-owner-name: installed-community-openshift-operators
+#     csc-owner-namespace: openshift-marketplace
+#   name: openshift-pipelines-operator
+#   namespace: openshift-operators
+# spec:
+#   channel: dev-preview
+#   installPlanApproval: Automatic
+#   name: openshift-pipelines-operator
+#   source: installed-community-openshift-operators
+#   sourceNamespace: openshift-operators
+# EOF
+
+#   startingCSV: openshift-pipelines-operator.v0.7.0
+
 echo -e "Installing Tekton pipelines"
 oc new-project tekton-pipelines
 oc adm policy add-scc-to-user anyuid -z tekton-pipelines-controller
