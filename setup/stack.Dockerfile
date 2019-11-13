@@ -22,7 +22,7 @@ ENV PATH="/usr/local/maven/apache-maven-3.6.2/bin:/usr/local/bin/:${PATH}"
 
 ENV MAVEN_OPTS="-Xmx4G -Xss128M -XX:MetaspaceSize=1G -XX:MaxMetaspaceSize=2G -XX:+CMSClassUnloadingEnabled"
 
-RUN yum install -y gcc zlib-devel zlib-devel && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && yum install -y siege jq
+RUN yum install -y gcc zlib-devel && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && yum install -y siege jq
 
 RUN chown -R jboss /home/jboss/.m2
 
