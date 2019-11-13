@@ -149,6 +149,7 @@ echo -e "Creating $USERCOUNT users' private repo...."
 for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
   MODULE_NO=$(echo $MODULE | cut -c 2)
   CLONE_ADDR=https://github.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2m$MODULE_NO-labs.git
+             https://github.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2m1-labs.git
   REPO_NAME=cloud-native-workshop-v2m$MODULE_NO-labs
   for i in $(eval echo "{0..$USERCOUNT}") ; do
     USER_ID=$(($i + 2))
@@ -165,26 +166,31 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
 done
 
 # Setup Istio Service Mesh
-oc get project istio-operator 
-RESULT=$? 
-if [ $RESULT -eq 0 ]; then
-  echo -e "istio-operator already exists..."
-elif [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  echo -e "Installing istio-operator..."
-  oc new-project istio-operator
-  oc apply -n istio-operator -f ${MYDIR}/../files/servicemesh-operator.yaml
-fi
-
 oc get project istio-system 
 RESULT=$? 
 if [ $RESULT -eq 0 ]; then
   echo -e "istio-system already exists..."
 elif [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  echo -e "Deploying the Istio Control Plane with Single-Tenant..."
+  echo -e "Installing elasticsearch-operator..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-elasticsearch-operator.4.2.1-201910221723.yaml
+  oc apply -f ${MYDIR}/../files/subscription-elasticsearch-operator.yaml
+  echo -e "Installing jaeger-operator..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-jaeger-operator.v1.13.1.yaml
+  oc apply -f ${MYDIR}/../files/subscription-jaeger-product.yaml
+  echo -e "Installing kiali-operator..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-kiali-operator.v1.0.7.yaml
+  oc apply -f ${MYDIR}/../files/subscription-kiali-ossm.yaml
+  sleep 20
+  echo -e "Installing servicemesh-operator..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.2.yaml
+  oc apply -f ${MYDIR}/../files/subscription-servicemeshoperator.yaml
+  sleep 20
+  echo -e "Deploying the Istio Control Plane and Service Mesh Membber Roll..."
   oc new-project istio-system
-  oc create -n istio-system -f ${MYDIR}/../files/servicemeshcontrolplane.yaml
-  # bash <(curl -L https://git.io/getLatestKialiOperator) --operator-image-version v1.0.0 --operator-watch-namespace '**' --accessible-namespaces '**' --operator-install-kiali false
-  # oc apply -n istio-system -f https://raw.githubusercontent.com/kiali/kiali/v1.0.0/operator/deploy/kiali/kiali_cr.yaml
+  oc delete limitranges/istio-system-core-resource-limits -n istio-system
+  oc apply -n istio-system -f ${MYDIR}/../files/istio-installation.yaml
+  oc apply -n istio-system -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
+
 fi
 
 # Create coolstore & bookinfo projects for each user
@@ -218,14 +224,15 @@ done
 
 # Install Custom Resource Definitions, Knative Serving, Knative Eventing
 if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  echo -e "Installing Knative Subscriptions..."
-  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/catalog-sources.yaml
+  echo -e "Installing OpenShift Serverless..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.1.0.yaml
+  oc apply -f ${MYDIR}/../files/subscription-serverless-operator.yaml
   
-  echo -e "Installing Knative Serving..."
-  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-serving-subscription.yaml
- 
   echo -e "Installing Knative Eventing..."
-  oc apply -f https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/knative-eventing-subscription.yaml
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-eventing-operator.v0.9.0.yaml
+  oc apply -f ${MYDIR}/../files/subscription-knative-eventing-operator.yaml
+
+  oc apply -f ${MYDIR}/../files/knativeserving-knative-serving.yaml 
 
 echo -e "Creating Role, Group, and assign Users"
 for i in $(eval echo "{0..$USERCOUNT}") ; do
@@ -265,70 +272,12 @@ oc policy add-role-to-user workshop-student$i user$i --role-namespace=user$i-clo
 done
 
 # Install AMQ Streams operator for all namespaces
-cat <<EOF | oc apply -n openshift-marketplace -f -
-apiVersion: operators.coreos.com/v1
-kind: CatalogSourceConfig
-metadata:
-  finalizers:
-  - finalizer.catalogsourceconfigs.operators.coreos.com
-  name: installed-redhat-openshift-operators
-  namespace: openshift-marketplace
-spec:
-  csDisplayName: Red Hat Operators
-  csPublisher: Red Hat
-  packages: amq-streams
-  targetNamespace: openshift-operators
-EOF
-
-cat <<EOF | oc apply -n openshift-operators -f -
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  labels:
-    csc-owner-name: installed-redhat-openshift-operators
-    csc-owner-namespace: openshift-marketplace
-  name: amq-streams
-  namespace: openshift-operators
-spec:
-  channel: stable
-  installPlanApproval: Automatic
-  name: amq-streams
-  source: installed-redhat-openshift-operators
-  sourceNamespace: openshift-operators
-EOF
+oc apply -f ${MYDIR}/../files/clusterserviceversion-amqstreams.v1.3.0.yaml
+oc apply -f ${MYDIR}/../files/subscription-amq-streams.yaml
 
 # Install Knative Kafka operator for all namespaces
-cat <<EOF | oc apply -n openshift-marketplace -f -
-apiVersion: operators.coreos.com/v1
-kind: CatalogSourceConfig
-metadata:
-  finalizers:
-  - finalizer.catalogsourceconfigs.operators.coreos.com
-  name: installed-community-openshift-operators
-  namespace: openshift-marketplace
-spec:
-  csDisplayName: Community Operators
-  csPublisher: Community
-  packages: knative-kafka-operator
-  targetNamespace: openshift-operators
-EOF
-
-cat <<EOF | oc apply -n openshift-operators -f -
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  labels:
-    csc-owner-name: installed-community-openshift-operators
-    csc-owner-namespace: openshift-marketplace
-  name: knative-kafka-operator
-  namespace: openshift-operators
-spec:
-  channel: alpha
-  installPlanApproval: Automatic
-  name: knative-kafka-operator
-  source: installed-community-openshift-operators
-  sourceNamespace: openshift-operators
-EOF
+oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-kafka-operator.v0.9.0.yaml
+oc apply -f ${MYDIR}/../files/sub3cription-knative-kafka-operator.yaml
 
 # Install Kafka cluster in Knative-eventing
 cat <<EOF | oc create -f -
@@ -339,7 +288,7 @@ metadata:
   namespace: knative-eventing
 spec:
   kafka:
-    version: 2.2.1
+    version: 2.3.0
     replicas: 3
     listeners:
       plain: {}
@@ -348,7 +297,7 @@ spec:
       offsets.topic.replication.factor: 3
       transaction.state.log.replication.factor: 3
       transaction.state.log.min.isr: 2
-      log.message.format.version: '2.2'
+      log.message.format.version: '2.3'
     storage:
       type: ephemeral
   zookeeper:
@@ -382,49 +331,14 @@ spec:
   setAsDefaultChannelProvisioner: false
 EOF
 
-# Install OpenShift pipeline operator for all namespaces
-# cat <<EOF | oc apply -n openshift-marketplace -f -
-# apiVersion: operators.coreos.com/v1
-# kind: CatalogSourceConfig
-# metadata:
-#   name: rhd-workshop-packages
-#   namespace: openshift-marketplace
-# spec:
-#   targetNamespace: openshift-operators
-#   packages: knative-serving-operator,knative-eventing-operator,openshift-pipelines-operator
-#   source: community-operators
-# EOF
-
-# cat <<EOF | oc apply -n openshift-operators -f -
-# apiVersion: operators.coreos.com/v1alpha1
-# kind: Subscription
-# metadata:
-#   labels:
-#     csc-owner-name: installed-community-openshift-operators
-#     csc-owner-namespace: openshift-marketplace
-#   name: openshift-pipelines-operator
-#   namespace: openshift-operators
-# spec:
-#   channel: dev-preview
-#   installPlanApproval: Automatic
-#   name: openshift-pipelines-operator
-#   source: installed-community-openshift-operators
-#   sourceNamespace: openshift-operators
-# EOF
-
-#   startingCSV: openshift-pipelines-operator.v0.7.0
-
+#Install OpenShift pipeline operator for all namespaces
 echo -e "Installing Tekton pipelines"
-oc new-project tekton-pipelines
-oc adm policy add-scc-to-user anyuid -z tekton-pipelines-controller
-oc apply --filename https://storage.googleapis.com/tekton-releases/latest/release.yaml
+oc apply -f ${MYDIR}/../files/clusterserviceversion-openshift-pipelines-operator.v0.7.0.yaml
+oc apply -f ${MYDIR}/../files/subscription-openshift-pipelines-operator.yaml
 
 echo -e "Creating new test-pipeline projects"
 for i in $(eval echo "{0..$USERCOUNT}") ; do
   oc new-project user$i-cloudnative-pipeline
-  oc create serviceaccount pipeline
-  oc adm policy add-scc-to-user privileged -z pipeline
-  oc adm policy add-role-to-user edit -z pipeline
   oc delete limitranges user0-cloudnativeapps-core-resource-limits -n user$i-cloudnativeapps
   oc delete limitranges user$i-cloudnative-pipeline-core-resource-limits -n user$i-cloudnative-pipeline
   oc adm policy add-role-to-user admin user$i -n user$i-cloudnative-pipeline
@@ -446,8 +360,8 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
       -e KEYCLOAK_URL=http://keycloak-labs-infra.$HOSTNAME_SUFFIX \
       -e GIT_URL=http://gogs-labs-infra.$HOSTNAME_SUFFIX \
       -e ROUTE_SUBDOMAIN=$HOSTNAME_SUFFIX \
-      -e CONTENT_URL_PREFIX="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/master" \
-      -e WORKSHOPS_URLS="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/master/_cloud-native-workshop-module$MODULE_NO.yml" \
+      -e CONTENT_URL_PREFIX="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/ocp-4.2" \
+      -e WORKSHOPS_URLS="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/ocp-4.2/_cloud-native-workshop-module$MODULE_NO.yml" \
       -e CHE_USER_NAME=userXX \
       -e CHE_USER_PASSWORD=${GOGS_PWD} \
       -e OPENSHIFT_USER_NAME=userXX \
@@ -556,52 +470,15 @@ oc delete project $TMP_PROJ
 
 # Install Che
 echo -e "Installing CodeReady Workspace...\n"
-cat <<EOF | oc apply -n openshift-marketplace -f -
-apiVersion: operators.coreos.com/v1
-kind: CatalogSourceConfig
-metadata:
-  finalizers:
-  - finalizer.catalogsourceconfigs.operators.coreos.com
-  name: installed-redhat-che
-  namespace: openshift-marketplace
-spec:
-  targetNamespace: labs-infra
-  packages: codeready-workspaces
-  csDisplayName: Red Hat Operators
-  csPublisher: Red Hat
-EOF
 
-cat <<EOF | oc apply -n labs-infra -f -
-apiVersion: operators.coreos.com/v1alpha2
-kind: OperatorGroup
-metadata:
-  name: che-operator-group
-  namespace: labs-infra
-  generateName: che-
-  annotations:
-    olm.providedAPIs: CheCluster.v1.org.eclipse.che
-spec:
-  targetNamespaces:
-  - labs-infra
-EOF
+oc create clusterrole codeready-operator --resource=oauthclients --verb=get,create,delete,update,list,watch
+oc create clusterrolebinding codeready-operator --clusterrole=codeready-operator --serviceaccount=labs-infra:codeready-operator
+oc create role secret-reader --resource=secrets --verb=get -n=openshift-ingress
+oc create rolebinding codeready-operator --role=secret-reader --serviceaccount=labs-infra:codeready-operator -n=openshift-ingress
 
-cat <<EOF | oc apply -n labs-infra -f -
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: codeready-workspaces
-  namespace: labs-infra
-  labels:
-    csc-owner-name: installed-redhat-che
-    csc-owner-namespace: openshift-marketplace
-spec:
-  channel: final
-  installPlanApproval: Automatic
-  name: codeready-workspaces
-  source: installed-redhat-che
-  sourceNamespace: labs-infra
-  startingCSV: crwoperator.v1.2.0
-EOF
+oc apply -f ${MYDIR}/../files/cdw-operatorgroup.yaml -n labs-infra
+oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v1.2.2.yaml
+oc apply -f ${MYDIR}/../files/subscription-codeready-workspaces.yaml
 
 # Wait for checluster to be a thing
 echo "Waiting for CheCluster CRDs"
@@ -613,37 +490,7 @@ while [ true ] ; do
   sleep 10
 done
 
-cat <<EOF | oc apply -n labs-infra -f -
-apiVersion: org.eclipse.che/v1
-kind: CheCluster
-metadata:
-  name: codeready
-  namespace: labs-infra
-spec:
-  server:
-    cheFlavor: codeready
-    tlsSupport: false
-    selfSignedCert: false
-    serverMemoryRequest: '2Gi'
-    serverMemoryLimit: '6Gi'
-  database:
-    externalDb: false
-    chePostgresHostName: ''
-    chePostgresPort: ''
-    chePostgresUser: ''
-    chePostgresPassword: ''
-    chePostgresDb: ''
-  auth:
-    openShiftoAuth: false
-    externalKeycloak: false
-    keycloakURL: ''
-    keycloakRealm: ''
-    keycloakClientId: ''
-  storage:
-    pvcStrategy: per-workspace
-    pvcClaimSize: 1Gi
-    preCreateSubPaths: true
-EOF
+oc apply -f ${MYDIR}/../files/checluster-codeready.yaml
 
 # Wait for che to be up
 echo "Waiting for Che to come up..."
@@ -694,7 +541,7 @@ SSO_TOKEN=$(curl -s -d "username=${KEYCLOAK_USER}&password=${KEYCLOAK_PASSWORD}&
   jq  -r '.access_token')
 
 # Import realm 
-wget https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/ccnrd-realm.json
+wget https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.2/files/ccnrd-realm.json
 curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d @ccnrd-realm.json \
   -X POST "http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms"
 rm -rf cnrd-realm.json
@@ -715,7 +562,7 @@ SSO_CHE_TOKEN=$(curl -s -d "username=admin&password=admin&grant_type=password&cl
   -X POST http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/realms/codeready/protocol/openid-connect/token | \
   jq  -r '.access_token')
 
-wget https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.1/files/stack-ccn.json
+wget https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.2/files/stack-ccn.json
 STACK_RESULT=$(curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
     --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @stack-ccn.json \
     "http://codeready-labs-infra.$HOSTNAME_SUFFIX/api/stack")
