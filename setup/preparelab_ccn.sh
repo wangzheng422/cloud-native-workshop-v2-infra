@@ -330,6 +330,16 @@ spec:
   sourceNamespace: openshift-operators
 EOF
 
+# Wait for checluster to be a thing
+echo "Waiting for Kafka CRD"
+while [ true ] ; do
+  if [ "$(oc explain kafka -n knative-eventing)" ] ; then
+    break
+  fi
+  echo -n .
+  sleep 10
+done
+
 # Install Kafka cluster in Knative-eventing
 cat <<EOF | oc create -f -
 apiVersion: kafka.strimzi.io/v1beta1
@@ -359,16 +369,6 @@ spec:
     topicOperator: {}
     userOperator: {}
 EOF
-
-# Wait for checluster to be a thing
-echo "Waiting for Kafka CRD"
-while [ true ] ; do
-  if [ "$(oc explain kafka -n knative-eventing)" ] ; then
-    break
-  fi
-  echo -n .
-  sleep 10
-done
 
 # Create KnativeEventingKafka in Knative-eventing
 cat <<EOF | oc create -f -
