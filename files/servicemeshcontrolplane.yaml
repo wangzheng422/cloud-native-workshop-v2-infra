@@ -95,10 +95,10 @@ spec:
         resources:
           requests:
             cpu: 100m
-            memory: 1G
+            memory: 1Gi
           limits:
             cpu: 500m
-            memory: 4G
+            memory: 4Gi
     pilot:
       autoscaleEnabled: true
       traceSampling: 100.0
@@ -108,7 +108,7 @@ spec:
             memory: 128Mi
           limits:
             cpu: 500m
-            memory: 256Mi
+            memory: 4Gi
     kiali:
       enabled: true
       tag: 0.20.0
