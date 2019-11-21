@@ -232,6 +232,7 @@ if [ -z "${MODULE_TYPE##*m4*}" ] ; then
   oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-eventing-operator.v0.9.0.yaml
   oc apply -f ${MYDIR}/../files/subscription-knative-eventing-operator.yaml
 
+  oc new-project knative-serving
   oc apply -f ${MYDIR}/../files/knativeserving-knative-serving.yaml 
 
 echo -e "Creating Role, Group, and assign Users"
@@ -277,7 +278,17 @@ oc apply -f ${MYDIR}/../files/subscription-amq-streams.yaml
 
 # Install Knative Kafka operator for all namespaces
 oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-kafka-operator.v0.9.0.yaml
-oc apply -f ${MYDIR}/../files/sub3cription-knative-kafka-operator.yaml
+oc apply -f ${MYDIR}/../files/subscription-knative-kafka-operator.yaml
+
+# Wait for checluster to be a thing
+echo "Waiting for Kafka CRD"
+while [ true ] ; do
+  if [ "$(oc explain kafka -n knative-eventing)" ] ; then
+    break
+  fi
+  echo -n .
+  sleep 10
+done
 
 # Install Kafka cluster in Knative-eventing
 cat <<EOF | oc create -f -
@@ -308,16 +319,6 @@ spec:
     topicOperator: {}
     userOperator: {}
 EOF
-
-# Wait for checluster to be a thing
-echo "Waiting for Kafka CRD"
-while [ true ] ; do
-  if [ "$(oc explain kafka -n knative-eventing)" ] ; then
-    break
-  fi
-  echo -n .
-  sleep 10
-done
 
 # Create KnativeEventingKafka in Knative-eventing
 cat <<EOF | oc create -f -
