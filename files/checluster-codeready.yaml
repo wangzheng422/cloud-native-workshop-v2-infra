@@ -1,29 +1,61 @@
 ﻿apiVersion: org.eclipse.che/v1
 kind: CheCluster
 metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: >
+      {"apiVersion":"org.eclipse.che/v1","kind":"CheCluster","metadata":{"annotations":{},"name":"codeready","namespace":"labs-infra"},"spec":{"auth":{"externalKeycloak":false,"keycloakClientId":"","keycloakRealm":"","keycloakURL":"","openShiftoAuth":false},"database":{"chePostgresDb":"","chePostgresHostName":"","chePostgresPassword":"","chePostgresPort":"","chePostgresUser":"","externalDb":false},"server":{"cheFlavor":"codeready","selfSignedCert":false,"serverMemoryLimit":"6Gi","serverMemoryRequest":"2Gi","tlsSupport":false},"storage":{"preCreateSubPaths":true,"pvcClaimSize":"1Gi","pvcStrategy":"per-workspace"}}}
   name: codeready
   namespace: labs-infra
 spec:
-  server:
-    cheFlavor: codeready
-    tlsSupport: false
-    selfSignedCert: false
-    serverMemoryRequest: '2Gi'
-    serverMemoryLimit: '6Gi'
-  database:
-    externalDb: false
-    chePostgresHostName: ''
-    chePostgresPort: ''
-    chePostgresUser: ''
-    chePostgresPassword: ''
-    chePostgresDb: ''
   auth:
+    identityProviderURL: >-
+      http://keycloak-labs-infra.apps.cluster-sddan-d187.sddan-d187.example.opentlc.com
+    identityProviderRealm: codeready
+    updateAdminPassword: false
+    identityProviderPostgresPassword: SeWtmdOTalgF
+    oAuthSecret: ''
+    identityProviderPassword: dCdDKLE5FsHw
+    identityProviderImage: 'registry.redhat.io/redhat-sso-7/sso73-openshift:1.0-13'
+    oAuthClientName: ''
+    identityProviderClientId: codeready-public
+    identityProviderAdminUserName: admin
+    externalIdentityProvider: false
     openShiftoAuth: false
-    externalKeycloak: false
-    keycloakURL: ''
-    keycloakRealm: ''
-    keycloakClientId: ''
+  database:
+    chePostgresDb: dbche
+    chePostgresHostName: postgres
+    chePostgresPassword: x7QGjJmxH1gm
+    chePostgresPort: '5432'
+    chePostgresUser: pgche
+    externalDb: false
+    postgresImage: 'registry.redhat.io/rhscl/postgresql-96-rhel7:1-46'
+  k8s:
+    ingressClass: ''
+    ingressDomain: ''
+    ingressStrategy: ''
+    tlsSecretName: ''
+  server:
+    cheLogLevel: INFO
+    proxyURL: ''
+    cheHost: >-
+      codeready-labs-infra.apps.cluster-sddan-d187.sddan-d187.example.opentlc.com
+    proxyPassword: ''
+    nonProxyHosts: ''
+    serverMemoryRequest: 2Gi
+    selfSignedCert: false
+    proxyPort: ''
+    cheDebug: 'false'
+    tlsSupport: false
+    serverMemoryLimit: 6Gi
+    proxyUser: ''
+    cheImage: ''
+    cheFlavor: codeready
+    cheImageTag: ''
+    pluginRegistryUrl: 'https://che-plugin-registry.openshift.io'
   storage:
-    pvcStrategy: per-workspace
-    pvcClaimSize: 1Gi
+    postgresPVCStorageClassName: ''
     preCreateSubPaths: true
+    pvcClaimSize: 1Gi
+    pvcJobsImage: 'registry.redhat.io/ubi8-minimal:8.0-159'
+    pvcStrategy: per-workspace
+    workspacePVCStorageClassName: ''
