@@ -4,9 +4,9 @@ metadata:
   name: codeready-workspaces
   namespace: labs-infra
 spec:
-  channel: final
+  channel: latest
   installPlanApproval: Automatic
   name: codeready-workspaces
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-  startingCSV: crwoperator.v1.2.2
+  startingCSV: crwoperator.v2.0.0

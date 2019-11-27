@@ -149,7 +149,6 @@ echo -e "Creating $USERCOUNT users' private repo...."
 for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
   MODULE_NO=$(echo $MODULE | cut -c 2)
   CLONE_ADDR=https://github.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2m$MODULE_NO-labs.git
-             https://github.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2m1-labs.git
   REPO_NAME=cloud-native-workshop-v2m$MODULE_NO-labs
   for i in $(eval echo "{0..$USERCOUNT}") ; do
     USER_ID=$(($i + 2))
@@ -166,31 +165,34 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
 done
 
 # Setup Istio Service Mesh
-oc get project istio-system 
-RESULT=$? 
-if [ $RESULT -eq 0 ]; then
-  echo -e "istio-system already exists..."
-elif [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  echo -e "Installing elasticsearch-operator..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-elasticsearch-operator.4.2.1-201910221723.yaml
-  oc apply -f ${MYDIR}/../files/subscription-elasticsearch-operator.yaml
-  echo -e "Installing jaeger-operator..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-jaeger-operator.v1.13.1.yaml
-  oc apply -f ${MYDIR}/../files/subscription-jaeger-product.yaml
-  echo -e "Installing kiali-operator..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-kiali-operator.v1.0.7.yaml
-  oc apply -f ${MYDIR}/../files/subscription-kiali-ossm.yaml
-  sleep 20
-  echo -e "Installing servicemesh-operator..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.2.yaml
-  oc apply -f ${MYDIR}/../files/subscription-servicemeshoperator.yaml
-  sleep 20
+if [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
+  # echo -e "Installing elasticsearch-operator..."
+  # oc apply -f ${MYDIR}/../files/clusterserviceversion-elasticsearch-operator.4.2.1-201910221723.yaml
+  # oc apply -f ${MYDIR}/../files/subscription-elasticsearch-operator.yaml
+  # echo -e "Installing jaeger-operator..."
+  # oc apply -f ${MYDIR}/../files/clusterserviceversion-jaeger-operator.v1.13.1.yaml
+  # oc apply -f ${MYDIR}/../files/subscription-jaeger-product.yaml
+  # echo -e "Installing kiali-operator..."
+  # oc apply -f ${MYDIR}/../files/clusterserviceversion-kiali-operator.v1.0.7.yaml
+  # oc apply -f ${MYDIR}/../files/subscription-kiali-ossm.yaml
+  # sleep 20
+  # echo -e "Installing servicemesh-operator..."
+  # oc apply -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.2.yaml
+  # oc apply -f ${MYDIR}/../files/subscription-servicemeshoperator.yaml
+  # sleep 20
+  echo -e "Installing OpenShift Serverless including Service Mesh..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.2.0.yaml
+  oc apply -f ${MYDIR}/../files/subscription-serverless-operator.yaml
+  if [ -z "${MODULE_TYPE##*m4*}" ] ; then
+    oc new-project knative-serving
+  fi
   echo -e "Deploying the Istio Control Plane and Service Mesh Membber Roll..."
   oc new-project istio-system
   oc delete limitranges/istio-system-core-resource-limits -n istio-system
+  echo -e "Waiting for servicemesh operator's up and copied..."
+  sleep 50
   oc apply -n istio-system -f ${MYDIR}/../files/istio-installation.yaml
   oc apply -n istio-system -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
-
 fi
 
 # Create coolstore & bookinfo projects for each user
@@ -224,16 +226,14 @@ done
 
 # Install Custom Resource Definitions, Knative Serving, Knative Eventing
 if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  echo -e "Installing OpenShift Serverless..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.1.0.yaml
-  oc apply -f ${MYDIR}/../files/subscription-serverless-operator.yaml
+  # echo -e "Installing OpenShift Serverless..."
+  # oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.2.0.yaml
+  # oc apply -f ${MYDIR}/../files/subscription-serverless-operator.yaml
   
   echo -e "Installing Knative Eventing..."
   oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-eventing-operator.v0.9.0.yaml
   oc apply -f ${MYDIR}/../files/subscription-knative-eventing-operator.yaml
-
-  oc new-project knative-serving
-  oc apply -f ${MYDIR}/../files/knativeserving-knative-serving.yaml 
+  oc apply -f ${MYDIR}/../files/knativeserving-knative-serving.yaml
 
 echo -e "Creating Role, Group, and assign Users"
 for i in $(eval echo "{0..$USERCOUNT}") ; do
@@ -280,8 +280,8 @@ oc apply -f ${MYDIR}/../files/subscription-amq-streams.yaml
 oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-kafka-operator.v0.9.0.yaml
 oc apply -f ${MYDIR}/../files/subscription-knative-kafka-operator.yaml
 
-# Wait for checluster to be a thing
-echo "Waiting for Kafka CRD"
+# Wait for Kafka CRD to be a thing
+echo -e "Waiting for Kafka CRD"
 while [ true ] ; do
   if [ "$(oc explain kafka -n knative-eventing)" ] ; then
     break
@@ -291,6 +291,7 @@ while [ true ] ; do
 done
 
 # Install Kafka cluster in Knative-eventing
+echo -e "Install Kafka cluster in Knative-eventing"
 cat <<EOF | oc create -f -
 apiVersion: kafka.strimzi.io/v1beta1
 kind: Kafka
@@ -478,7 +479,7 @@ oc create role secret-reader --resource=secrets --verb=get -n=openshift-ingress
 oc create rolebinding codeready-operator --role=secret-reader --serviceaccount=labs-infra:codeready-operator -n=openshift-ingress
 
 oc apply -f ${MYDIR}/../files/cdw-operatorgroup.yaml -n labs-infra
-oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v1.2.2.yaml
+oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v2.0.0.yaml
 oc apply -f ${MYDIR}/../files/subscription-codeready-workspaces.yaml
 
 # Wait for checluster to be a thing

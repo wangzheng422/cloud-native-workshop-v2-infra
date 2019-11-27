@@ -1,12 +1,16 @@
 ﻿apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: elasticsearch-operator
+  annotations:
+    olm.generated-by: install-pcrq2
+  name: elasticsearch-operator-4.2-redhat-operators-openshift-marketplace
   namespace: openshift-operators
 spec:
   channel: '4.2'
+  config:
+    resources: {}
   installPlanApproval: Automatic
   name: elasticsearch-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-  startingCSV: elasticsearch-operator.4.2.1-201910221723
+  startingCSV: elasticsearch-operator.4.2.5-201911121709

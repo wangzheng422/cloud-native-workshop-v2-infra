@@ -2,7 +2,7 @@
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    olm.skipRange: '>=4.1.0 <4.2.1-201910221723'
+    olm.skipRange: '>=4.1.0 <4.2.5-201911121709'
     certified: 'false'
     olm.targetNamespaces: ''
     support: 'AOS Cluster Logging, Jaeger'
@@ -17,7 +17,7 @@ metadata:
               "spec": {
                 "managementState": "Managed",
                 "nodeSpec": {
-                  "image": "registry.redhat.io/openshift4/ose-logging-elasticsearch5@sha256:99dceab6f80fc22fb5f8d0284466a4352f2e3d81f383888b9a4ff21721b64fd8",
+                  "image": "registry.redhat.io/openshift4/ose-logging-elasticsearch5@sha256:d0bc2fa2f9013ecf812d75e6fdcd0686928c182ba4b0ee5e7c6319965a855569",
                   "resources": {
                     "limits": {
                       "memory": "1Gi"
@@ -40,7 +40,8 @@ metadata:
     capabilities: Seamless Upgrades
     olm.operatorNamespace: openshift-operators
     containerImage: >-
-      registry.redhat.io/openshift4/ose-elasticsearch-operator@sha256:69968bc98d29773b89ba9b3c3c5b1fc44d8df5226934683e3029ae14f4829fab
+      registry.redhat.io/openshift4/ose-elasticsearch-operator@sha256:dd26b4d6e30d7ed692ab47a00fa90f642dc5985c9ec8f53c2ade714c3c36e746
+    createdAt: '2019-02-20T08:00:00Z'
     categories: 'OpenShift Optional, Logging & Tracing'
     description: >-
       The Elasticsearch Operator for OKD provides a means for configuring and
@@ -66,7 +67,7 @@ metadata:
       lower memory setting though this is not recommended for production
       deployments.
     olm.operatorGroup: global-operators
-  name: elasticsearch-operator.4.2.1-201910221723
+  name: elasticsearch-operator.4.2.5-201911121709
   namespace: openshift-operators
   labels:
     olm.api.e43efcaa45c9f8d0: provided
@@ -180,7 +181,7 @@ spec:
       type: MultiNamespace
     - supported: true
       type: AllNamespaces
-  version: 4.2.1-201910221723
+  version: 4.2.5-201911121709
   links:
     - name: Elastic
       url: 'https://www.elastic.co/'
@@ -279,12 +280,12 @@ spec:
                         value: elasticsearch-operator
                       - name: PROXY_IMAGE
                         value: >-
-                          registry.redhat.io/openshift4/ose-oauth-proxy@sha256:60d2b04bcc633b1053a7b712f657be46ccd0a05426793fd7fd64aa6b7d262f5d
+                          registry.redhat.io/openshift4/ose-oauth-proxy@sha256:48ffe0116793e1796d62bba3a69b28aceb6008f66eeffe85294276937f155afb
                       - name: ELASTICSEARCH_IMAGE
                         value: >-
-                          registry.redhat.io/openshift4/ose-logging-elasticsearch5@sha256:99dceab6f80fc22fb5f8d0284466a4352f2e3d81f383888b9a4ff21721b64fd8
+                          registry.redhat.io/openshift4/ose-logging-elasticsearch5@sha256:d0bc2fa2f9013ecf812d75e6fdcd0686928c182ba4b0ee5e7c6319965a855569
                     image: >-
-                      registry.redhat.io/openshift4/ose-elasticsearch-operator@sha256:69968bc98d29773b89ba9b3c3c5b1fc44d8df5226934683e3029ae14f4829fab
+                      registry.redhat.io/openshift4/ose-elasticsearch-operator@sha256:dd26b4d6e30d7ed692ab47a00fa90f642dc5985c9ec8f53c2ade714c3c36e746
                     imagePullPolicy: IfNotPresent
                     name: elasticsearch-operator
                     ports:

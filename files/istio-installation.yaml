@@ -38,6 +38,10 @@ spec:
     pilot:
       autoscaleEnabled: true
       traceSampling: 100
+      resources:
+          limits:
+            cpu: 500m
+            memory: 4Gi
     kiali:
       enabled: true
     grafana:
