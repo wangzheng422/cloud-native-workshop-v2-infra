@@ -12,7 +12,7 @@ USERCOUNT=10
 MODULE_TYPE=m1
 REQUESTED_CPU=2
 REQUESTED_MEMORY=4Gi
-GOGS_PWD=openshift
+USER_PWD=openshift
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -64,8 +64,8 @@ done
 oc new-project labs-infra
 
 # adjust limits for admin
-oc get userquota/default 
-RESULT=$? 
+oc get userquota/default
+RESULT=$?
 if [ $RESULT -eq 0 ]; then
   oc delete userquota/default
 else
@@ -101,96 +101,27 @@ if [ -z "${MODULE_TYPE##*m1*}" ] ; then
       -p EXECUTOR_REQUESTED_MEMORY=2Gi | oc create -n labs-infra  -f -
 fi
 
-# deploy gogs
-oc -n labs-infra new-app -f ${MYDIR}/../files/gogs-template.yaml \
-      -p HOSTNAME=gogs-labs-infra.$HOSTNAME_SUFFIX \
-      -p GOGS_VERSION=0.11.34 \
-      -p SKIP_TLS_VERIFY=true \
-      -p APPLICATION_NAME=gogs
-# oc set resources dc/gogs --limits=cpu=400m,memory=512Mi --requests=cpu=100m,memory=128Mi
-
-# Wait for gogs postgresql to be running
-echo -e "Waiting for gogs postgresql to be running... \n"
-while [ 1 ]; do
-  STAT=$(curl -s -w '%{http_code}' -o /dev/null http://gogs-labs-infra.$HOSTNAME_SUFFIX)
-  if [ "$STAT" = 200 ] ; then
-    break
-  fi
-  echo -n .
-  sleep 10
-done
-
-# Create gogs admin user
-STAT=$(curl -s -w '%{http_code}' -o /dev/null -X POST http://gogs-labs-infra.$HOSTNAME_SUFFIX/user/sign_up \
-      -H "Content-Type: application/x-www-form-urlencoded" \
-      -d "user_name=adminuser&password=adminpwd&&retype=adminpwd&&email=adminuser@gogs.com")
-if [ "$STAT" = 302 ] || [ "$STAT" = 200 ] ; then
-  echo "adminuser is created successfully..."
-else
-  echo "Failure to create adminuser with $STAT"
-fi
-
-# Create gogs users
-echo -e "Creating $USERCOUNT gogs users.... \n"
-for i in $(eval echo "{0..$USERCOUNT}") ; do
-  STAT=$(curl -s -w '%{http_code}' -o /dev/null -X POST http://gogs-labs-infra.$HOSTNAME_SUFFIX/api/v1/admin/users \
-        -H "Content-Type: application/json" \
-        -d '{"login_name": "user'"$i"'", "username": "user'"$i"'", "email": "user'"$i"'@gogs.com", "password": "'"$GOGS_PWD"'"}' \
-        -u adminuser:adminpwd)
-  if [ "$STAT" = 200 ] || [ "$STAT" = 201 ] ; then
-    echo "user$i is created successfully..."
-  else
-    echo "Failure to create user$i with $STAT"
-  fi
-done
-
-# Create users' private repo
-echo -e "Creating $USERCOUNT users' private repo...."
-for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
-  MODULE_NO=$(echo $MODULE | cut -c 2)
-  CLONE_ADDR=https://github.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2m$MODULE_NO-labs.git
-  REPO_NAME=cloud-native-workshop-v2m$MODULE_NO-labs
-  for i in $(eval echo "{0..$USERCOUNT}") ; do
-    USER_ID=$(($i + 2))
-    STAT=$(curl -s -w '%{http_code}' -o /dev/null -X POST http://gogs-labs-infra.$HOSTNAME_SUFFIX/api/v1/repos/migrate \
-        -H "Content-Type: application/json" \
-        -d '{"clone_addr": "'"$CLONE_ADDR"'", "uid": '"$USER_ID"', "repo_name": "'"$REPO_NAME"'" }' \
-        -u "user${i}:${GOGS_PWD}")
-    if [ "$STAT" = 201 ] ; then
-      echo "user$i $MODULE repo is created successfully..."
-    else
-      echo "Failure to create user$i $MODULE repo with $STAT"
-    fi
-  done
-done
-
 # Setup Istio Service Mesh
 if [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  # echo -e "Installing elasticsearch-operator..."
-  # oc apply -f ${MYDIR}/../files/clusterserviceversion-elasticsearch-operator.4.2.1-201910221723.yaml
-  # oc apply -f ${MYDIR}/../files/subscription-elasticsearch-operator.yaml
-  # echo -e "Installing jaeger-operator..."
-  # oc apply -f ${MYDIR}/../files/clusterserviceversion-jaeger-operator.v1.13.1.yaml
-  # oc apply -f ${MYDIR}/../files/subscription-jaeger-product.yaml
-  # echo -e "Installing kiali-operator..."
-  # oc apply -f ${MYDIR}/../files/clusterserviceversion-kiali-operator.v1.0.7.yaml
-  # oc apply -f ${MYDIR}/../files/subscription-kiali-ossm.yaml
-  # sleep 20
-  # echo -e "Installing servicemesh-operator..."
-  # oc apply -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.2.yaml
-  # oc apply -f ${MYDIR}/../files/subscription-servicemeshoperator.yaml
-  # sleep 20
-  echo -e "Installing OpenShift Serverless including Service Mesh..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.2.0.yaml
-  oc apply -f ${MYDIR}/../files/subscription-serverless-operator.yaml
-  if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-    oc new-project knative-serving
-  fi
+  echo -e "Installing elasticsearch-operator..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-elasticsearch-operator.4.2.8-201911190952.yaml
+  oc apply -f ${MYDIR}/../files/subscription-elasticsearch-operator.yaml
+  echo -e "Installing jaeger-operator..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-jaeger-operator.v1.13.1.yaml
+  oc apply -f ${MYDIR}/../files/subscription-jaeger-product.yaml
+  echo -e "Installing kiali-operator..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-kiali-operator.v1.0.7.yaml
+  oc apply -f ${MYDIR}/../files/subscription-kiali-ossm.yaml
+  sleep 20
+  echo -e "Installing servicemesh-operator..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.2.yaml
+  oc apply -f ${MYDIR}/../files/subscription-servicemeshoperator.yaml
+  sleep 20
   echo -e "Deploying the Istio Control Plane and Service Mesh Membber Roll..."
   oc new-project istio-system
   oc delete limitranges/istio-system-core-resource-limits -n istio-system
   echo -e "Waiting for servicemesh operator's up and copied..."
-  sleep 50
+  sleep 20
   oc apply -n istio-system -f ${MYDIR}/../files/istio-installation.yaml
   oc apply -n istio-system -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
 fi
@@ -200,40 +131,42 @@ echo -e "Creating coolstore & bookinfo projects for each user... \n"
 for i in $(eval echo "{0..$USERCOUNT}") ; do
   if [ -z "${MODULE_TYPE##*m1*}" ] || [ -z "${MODULE_TYPE##*m2*}" ] || [ -z "${MODULE_TYPE##*m3*}" ] ; then
     oc new-project user$i-inventory
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-inventory 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-inventory 
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-inventory
+    oc adm policy add-scc-to-user privileged -z default -n user$i-inventory
     oc adm policy add-role-to-user admin user$i -n user$i-inventory
     oc new-project user$i-catalog
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-catalog 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-catalog 
-    oc adm policy add-role-to-user admin user$i -n user$i-catalog 
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-catalog
+    oc adm policy add-scc-to-user privileged -z default -n user$i-catalog
+    oc adm policy add-role-to-user admin user$i -n user$i-catalog
   fi
   if [ -z "${MODULE_TYPE##*m3*}" ] ; then
-    oc new-project user$i-bookinfo 
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-bookinfo 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-bookinfo 
-    oc adm policy add-role-to-user admin user$i -n user$i-bookinfo 
-    oc adm policy add-role-to-user view user$i -n istio-system 
+    oc new-project user$i-bookinfo
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-bookinfo
+    oc adm policy add-scc-to-user privileged -z default -n user$i-bookinfo
+    oc adm policy add-role-to-user admin user$i -n user$i-bookinfo
+    oc adm policy add-role-to-user view user$i -n istio-system
   fi
   if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-    oc new-project user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps 
-    oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps 
-    oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps 
-    oc adm policy add-role-to-user view user$i -n istio-system 
+    oc new-project user$i-cloudnativeapps
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-cloudnativeapps
+    oc adm policy add-scc-to-user privileged -z default -n user$i-cloudnativeapps
+    oc adm policy add-role-to-user admin user$i -n user$i-cloudnativeapps
+    oc adm policy add-role-to-user view user$i -n istio-system
   fi
 done
 
 # Install Custom Resource Definitions, Knative Serving, Knative Eventing
 if [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  # echo -e "Installing OpenShift Serverless..."
-  # oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.2.0.yaml
-  # oc apply -f ${MYDIR}/../files/subscription-serverless-operator.yaml
-  
+  echo -e "Installing OpenShift Serverless..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.2.0.yaml
+  oc apply -f ${MYDIR}/../files/subscription-serverless-operator.yaml
+  oc new-project knative-serving
+  oc apply -f ${MYDIR}/../files/istio-installation-knative.yaml
+  oc apply -f ${MYDIR}/../files/knativeserving-knative-serving.yaml
+
   echo -e "Installing Knative Eventing..."
   oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-eventing-operator.v0.9.0.yaml
   oc apply -f ${MYDIR}/../files/subscription-knative-eventing-operator.yaml
-  oc apply -f ${MYDIR}/../files/knativeserving-knative-serving.yaml
 
 echo -e "Creating Role, Group, and assign Users"
 for i in $(eval echo "{0..$USERCOUNT}") ; do
@@ -360,14 +293,13 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
       -e CONSOLE_URL=$CONSOLE_URL \
       -e ECLIPSE_CHE_URL=http://codeready-labs-infra.$HOSTNAME_SUFFIX \
       -e KEYCLOAK_URL=http://keycloak-labs-infra.$HOSTNAME_SUFFIX \
-      -e GIT_URL=http://gogs-labs-infra.$HOSTNAME_SUFFIX \
       -e ROUTE_SUBDOMAIN=$HOSTNAME_SUFFIX \
       -e CONTENT_URL_PREFIX="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/ocp-4.2" \
       -e WORKSHOPS_URLS="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/ocp-4.2/_cloud-native-workshop-module$MODULE_NO.yml" \
       -e CHE_USER_NAME=userXX \
-      -e CHE_USER_PASSWORD=${GOGS_PWD} \
+      -e CHE_USER_PASSWORD=${USER_PWD} \
       -e OPENSHIFT_USER_NAME=userXX \
-      -e OPENSHIFT_USER_PASSWORD=${GOGS_PWD} \
+      -e OPENSHIFT_USER_PASSWORD=${USER_PWD} \
       -e RHAMT_URL=http://rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX \
       -e LOG_TO_STDOUT=true
   oc -n labs-infra expose svc/guides-$MODULE
@@ -377,7 +309,7 @@ done
 if [ -z "${MODULE_TYPE##*m2*}" ] ; then
   oc replace -f ${MYDIR}/../files/jenkins-ephemeral.yml -n openshift
   oc get project jenkins
-  RESULT=$? 
+  RESULT=$?
   if [ $RESULT -eq 0 ]; then
     echo -e "jenkins project already exists..."
   elif [ -z "${MODULE_TYPE##*m2*}" ] ; then
@@ -420,7 +352,7 @@ if [ -z "${MODULE_TYPE##*m1*}" ] ; then
     echo -e "Failure to update a master realm with RH-SSO theme with $RES\n"
   fi
 
-  echo -e "Creating RH-SSO users as many as gogs users \n"
+  echo -e "Creating RH-SSO users \n"
   for i in $(eval echo "{0..$USERCOUNT}") ; do
     RES=$(curl -s -w '%{http_code}' -o /dev/null  -k -X POST https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/rhamt/users \
     -H "Content-Type: application/json" \
@@ -453,12 +385,12 @@ if [ -z "${MODULE_TYPE##*m1*}" ] ; then
   for i in $(jq '. | keys | .[]' <<< "$USER_ID_LIST"); do
     USER_ID=$(jq -r ".[$i].id" <<< "$USER_ID_LIST")
     USER_NAME=$(jq -r ".[$i].username" <<< "$USER_ID_LIST")
-    if [ "$USER_NAME" != "rhamt" ] ; then 
+    if [ "$USER_NAME" != "rhamt" ] ; then
       RES=$(curl -s -w '%{http_code}' -o /dev/null -k -X PUT https://secure-rhamt-web-console-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms/rhamt/users/$USER_ID/reset-password \
         -H "Content-Type: application/json" \
         -H "Accept: application/json" \
         -H "Authorization: Bearer $RESULT_TOKEN" \
-        -d '{ "type": "password", "value": "'"$GOGS_PWD"'", "temporary": true}')
+        -d '{ "type": "password", "value": "'"$USER_PWD"'", "temporary": true}')
       if [ "$RES" = 204 ] ; then
         echo -e "user$i password is reset successfully...\n"
       else
@@ -470,16 +402,10 @@ fi
 
 oc delete project $TMP_PROJ
 
-# Install Che
+# Install CodeReady Workspace
 echo -e "Installing CodeReady Workspace...\n"
-
-oc create clusterrole codeready-operator --resource=oauthclients --verb=get,create,delete,update,list,watch
-oc create clusterrolebinding codeready-operator --clusterrole=codeready-operator --serviceaccount=labs-infra:codeready-operator
-oc create role secret-reader --resource=secrets --verb=get -n=openshift-ingress
-oc create rolebinding codeready-operator --role=secret-reader --serviceaccount=labs-infra:codeready-operator -n=openshift-ingress
-
-oc apply -f ${MYDIR}/../files/cdw-operatorgroup.yaml -n labs-infra
-oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v2.0.0.yaml
+# oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v2.0.0.yaml
+oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v1.2.2.yaml
 oc apply -f ${MYDIR}/../files/subscription-codeready-workspaces.yaml
 
 # Wait for checluster to be a thing
@@ -494,8 +420,8 @@ done
 
 oc apply -f ${MYDIR}/../files/checluster-codeready.yaml
 
-# Wait for che to be up
-echo "Waiting for Che to come up..."
+# Wait for che to be up again after creating checluster
+echo "Waiting for Che to come up again after creating checluster..."
 while [ 1 ]; do
   STAT=$(curl -s -w '%{http_code}' -o /dev/null http://codeready-labs-infra.$HOSTNAME_SUFFIX/dashboard/)
   if [ "$STAT" = 200 ] ; then
@@ -542,7 +468,7 @@ SSO_TOKEN=$(curl -s -d "username=${KEYCLOAK_USER}&password=${KEYCLOAK_PASSWORD}&
   -X POST http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/realms/master/protocol/openid-connect/token | \
   jq  -r '.access_token')
 
-# Import realm 
+# Import realm
 wget https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.2/files/ccnrd-realm.json
 curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d @ccnrd-realm.json \
   -X POST "http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms"
@@ -556,7 +482,7 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
     USERNAME=user${i}
     FIRSTNAME=User${i}
     LASTNAME=Developer
-    curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d '{"username":"user'${i}'","enabled":true,"emailVerified": true,"firstName": "User'${i}'","lastName": "Developer","email": "user'${i}'@no-reply.com", "credentials":[{"type":"password","value":"'${GOGS_PWD}'","temporary":false}]}' -X POST "http://keycloak-labs-infra.${HOSTNAME_SUFFIX}/auth/admin/realms/codeready/users"
+    curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d '{"username":"user'${i}'","enabled":true,"emailVerified": true,"firstName": "User'${i}'","lastName": "Developer","email": "user'${i}'@no-reply.com", "credentials":[{"type":"password","value":"'${USER_PWD}'","temporary":false}]}' -X POST "http://keycloak-labs-infra.${HOSTNAME_SUFFIX}/auth/admin/realms/codeready/users"
 done
 
 # Import stack definition
@@ -597,7 +523,7 @@ done
 
 # Pre-create workspaces for users
 for i in $(eval echo "{0..$USERCOUNT}") ; do
-    SSO_CHE_TOKEN=$(curl -s -d "username=user${i}&password=${GOGS_PWD}&grant_type=password&client_id=admin-cli" \
+    SSO_CHE_TOKEN=$(curl -s -d "username=user${i}&password=${USER_PWD}&grant_type=password&client_id=admin-cli" \
         -X POST http://keycloak-labs-infra.${HOSTNAME_SUFFIX}/auth/realms/codeready/protocol/openid-connect/token | jq  -r '.access_token')
 
     TMPWORK=$(mktemp)
