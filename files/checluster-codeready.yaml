@@ -8,6 +8,8 @@ spec:
     cheFlavor: codeready
     tlsSupport: false
     selfSignedCert: false
+    serverMemoryRequest: '2Gi'
+    serverMemoryLimit: '6Gi'
   database:
     externalDb: false
     chePostgresHostName: ''

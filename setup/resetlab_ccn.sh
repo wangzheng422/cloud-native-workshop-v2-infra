@@ -18,12 +18,6 @@ oc delete -n istio-system -f ${MYDIR}/../files/servicemeshmemberroll-default.yam
 oc delete project labs-infra istio-system knative-eventing knative-serving
 oc delete template coolstore-monolith-binary-build coolstore-monolith-pipeline-build ccn-sso72 -n openshift
 
-oc delete -f ${MYDIR}/../files/clusterserviceversion-elasticsearch-operator.4.2.8-201911190952.yaml
-oc delete -f ${MYDIR}/../files/subscription-elasticsearch-operator.yaml
-oc delete -f ${MYDIR}/../files/clusterserviceversion-jaeger-operator.v1.13.1.yaml
-oc delete -f ${MYDIR}/../files/subscription-jaeger-product.yaml
-oc delete -f ${MYDIR}/../files/clusterserviceversion-kiali-operator.v1.0.7.yaml
-oc delete -f ${MYDIR}/../files/subscription-kiali-ossm.yaml
 oc delete -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.2.yaml
 oc delete -f ${MYDIR}/../files/subscription-servicemeshoperator.yaml
 oc delete -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.2.0.yaml

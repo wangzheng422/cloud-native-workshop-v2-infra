@@ -51,7 +51,7 @@ metadata:
     description: >-
       A Kube-native development solution that delivers portable and
       collaborative developer workspaces in OpenShift.
-    olm.operatorGroup: labs-infra-w4pgz
+    olm.operatorGroup: codeready-operator-group
   name: crwoperator.v1.2.2
   namespace: labs-infra
   labels:

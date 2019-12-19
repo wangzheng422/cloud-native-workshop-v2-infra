@@ -5,5 +5,5 @@ metadata:
   namespace: istio-system
 spec:
   members:
-    - knative-serving
-    - knative-eventing
+    - your-project
+    - another-of-your-projects

@@ -9,4 +9,4 @@ spec:
   name: knative-kafka-operator
   source: community-operators
   sourceNamespace: openshift-marketplace
-  startingCSV: knative-kafka-operator.v0.9.0
+  startingCSV: knative-kafka-operator.v0.10.0

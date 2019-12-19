@@ -1,0 +1,11 @@
+apiVersion: operators.coreos.com/v1alpha2
+kind: OperatorGroup
+metadata:
+  name: codeready-operator-group
+  namespace: labs-infra
+  generateName: codeready-
+  annotations:
+    olm.providedAPIs: CheCluster.v1.org.eclipse.che
+spec:
+  targetNamespaces:
+  - labs-infra

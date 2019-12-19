@@ -103,27 +103,14 @@ fi
 
 # Setup Istio Service Mesh
 if [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  echo -e "Installing elasticsearch-operator..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-elasticsearch-operator.4.2.8-201911190952.yaml
-  oc apply -f ${MYDIR}/../files/subscription-elasticsearch-operator.yaml
-  echo -e "Installing jaeger-operator..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-jaeger-operator.v1.13.1.yaml
-  oc apply -f ${MYDIR}/../files/subscription-jaeger-product.yaml
-  echo -e "Installing kiali-operator..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-kiali-operator.v1.0.7.yaml
-  oc apply -f ${MYDIR}/../files/subscription-kiali-ossm.yaml
-  sleep 20
-  echo -e "Installing servicemesh-operator..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.2.yaml
+  echo -e "Installing OpenShift Service Mesh..."
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.3.yaml
   oc apply -f ${MYDIR}/../files/subscription-servicemeshoperator.yaml
-  sleep 20
-  echo -e "Deploying the Istio Control Plane and Service Mesh Membber Roll..."
+  echo -e "Deploying Service Mesh Control Plane and Membber Roll..."
   oc new-project istio-system
   oc delete limitranges/istio-system-core-resource-limits -n istio-system
-  echo -e "Waiting for servicemesh operator's up and copied..."
-  sleep 20
-  oc apply -n istio-system -f ${MYDIR}/../files/istio-installation.yaml
-  oc apply -n istio-system -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
+  oc apply -f ${MYDIR}/../files/istio-installation.yaml
+  oc apply -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
 fi
 
 # Create coolstore & bookinfo projects for each user
@@ -161,7 +148,6 @@ if [ -z "${MODULE_TYPE##*m4*}" ] ; then
   oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.2.0.yaml
   oc apply -f ${MYDIR}/../files/subscription-serverless-operator.yaml
   oc new-project knative-serving
-  oc apply -f ${MYDIR}/../files/istio-installation-knative.yaml
   oc apply -f ${MYDIR}/../files/knativeserving-knative-serving.yaml
 
   echo -e "Installing Knative Eventing..."
@@ -210,7 +196,7 @@ oc apply -f ${MYDIR}/../files/clusterserviceversion-amqstreams.v1.3.0.yaml
 oc apply -f ${MYDIR}/../files/subscription-amq-streams.yaml
 
 # Install Knative Kafka operator for all namespaces
-oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-kafka-operator.v0.9.0.yaml
+oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-kafka-operator.v0.10.0.yaml
 oc apply -f ${MYDIR}/../files/subscription-knative-kafka-operator.yaml
 
 # Wait for Kafka CRD to be a thing
@@ -268,7 +254,7 @@ EOF
 
 #Install OpenShift pipeline operator for all namespaces
 echo -e "Installing Tekton pipelines"
-oc apply -f ${MYDIR}/../files/clusterserviceversion-openshift-pipelines-operator.v0.7.0.yaml
+oc apply -f ${MYDIR}/../files/clusterserviceversion-openshift-pipelines-operator.v0.8.2.yaml
 oc apply -f ${MYDIR}/../files/subscription-openshift-pipelines-operator.yaml
 
 echo -e "Creating new test-pipeline projects"
@@ -405,6 +391,7 @@ oc delete project $TMP_PROJ
 # Install CodeReady Workspace
 echo -e "Installing CodeReady Workspace...\n"
 # oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v2.0.0.yaml
+oc apply -f ${MYDIR}/../files/codeready-operator-group.yaml
 oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v1.2.2.yaml
 oc apply -f ${MYDIR}/../files/subscription-codeready-workspaces.yaml
 

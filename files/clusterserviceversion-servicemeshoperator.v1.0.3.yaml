@@ -16,48 +16,24 @@ metadata:
           },
           "spec": {
             "istio": {
-              "global": {
-                "proxy": {
-                  "resources": {
-                    "requests": {
-                      "cpu": "100m",
-                      "memory": "128Mi"
-                    },
-                    "limits": {
-                      "cpu": "500m",
-                      "memory": "256Mi"
-                    }
-                  }
-                }
-              },
               "gateways": {
                 "istio-egressgateway": {
-                  "autoscaleEnabled": true
+                  "autoscaleEnabled": false
                 },
                 "istio-ingressgateway": {
-                  "autoscaleEnabled": true
+                  "autoscaleEnabled": false
                 }
               },
               "mixer": {
                 "policy": {
-                  "autoscaleEnabled": true
+                  "autoscaleEnabled": false
                 },
                 "telemetry": {
-                  "autoscaleEnabled": true,
-                  "resources": {
-                    "requests": {
-                      "cpu": "100m",
-                      "memory": "1G"
-                    },
-                    "limits": {
-                      "cpu": "500m",
-                      "memory": "4G"
-                    }
-                  }
+                  "autoscaleEnabled": false
                 }
               },
               "pilot": {
-                "autoscaleEnabled": true,
+                "autoscaleEnabled": false,
                 "traceSampling": 100.0
               },
               "kiali": {
@@ -84,22 +60,24 @@ metadata:
           "spec": {
             "members": [
               "your-project",
-              "another-of-your-projects" 
+              "another-of-your-projects"
             ]
           }
         }
       ]
     capabilities: Seamless Upgrades
     olm.operatorNamespace: openshift-operators
-    containerImage: 'registry.redhat.io/openshift-service-mesh/istio-rhel8-operator:1.0.2'
-    createdAt: '2019-10-28T17:38:47UTC'
+    containerImage: 'registry.redhat.io/openshift-service-mesh/istio-rhel8-operator:1.0.3'
+    createdAt: '2019-12-05T14:21:42UTC'
     categories: 'OpenShift Optional, Integration & Delivery'
     description: >-
       The OpenShift Service Mesh Operator enables you to install, configure, and
       manage an instance of Red Hat OpenShift Service Mesh. OpenShift Service
       Mesh is based on the open source Istio project.
     olm.operatorGroup: global-operators
-  name: servicemeshoperator.v1.0.2
+  selfLink: >-
+    /apis/operators.coreos.com/v1alpha1/namespaces/openshift-operators/clusterserviceversions/servicemeshoperator.v1.0.3
+  name: servicemeshoperator.v1.0.3
   namespace: openshift-operators
   labels:
     olm.api.1d316f16185c2e24: provided
@@ -176,7 +154,7 @@ spec:
       type: MultiNamespace
     - supported: true
       type: AllNamespaces
-  version: 1.0.2
+  version: 1.0.3
   links:
     - name: Service Mesh Operator
       url: 'https://github.com/Maistra/istio-operator'
@@ -409,9 +387,9 @@ spec:
                         value: istio-operator
                       - name: ISTIO_CNI_IMAGE
                         value: >-
-                          registry.redhat.io/openshift-service-mesh/istio-cni-rhel8:1.0.2
+                          registry.redhat.io/openshift-service-mesh/istio-cni-rhel8:1.0.3
                     image: >-
-                      registry.redhat.io/openshift-service-mesh/istio-rhel8-operator:1.0.2
+                      registry.redhat.io/openshift-service-mesh/istio-rhel8-operator:1.0.3
                     imagePullPolicy: Always
                     name: istio-operator
                     ports:
@@ -434,5 +412,5 @@ spec:
   description: >-
     Red Hat OpenShift Service Mesh is a platform that provides behavioral
     insight and operational control over the service mesh, providing a uniform
-    way to connect, secure, and monitor microservice applications. 
-  replaces: servicemeshoperator.v1.0.1
+    way to connect, secure, and monitor microservice applications.
+  replaces: servicemeshoperator.v1.0.2
