@@ -9,9 +9,9 @@ function usage() {
 
 # Defaults
 USERCOUNT=2
-MODULE_TYPE=m1
-REQUESTED_CPU=100m
-REQUESTED_MEMORY=1Gi
+MODULE_TYPE=m1,m2
+REQUESTED_CPU=2
+REQUESTED_MEMORY=4Gi
 USER_PWD=openshift
 
 POSITIONAL=()
@@ -269,6 +269,7 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
   oc adm policy add-role-to-user view user$i -n knative-serving
 done
 
+# here is the end if you want
 fi
 
 # deploy guides
@@ -280,8 +281,8 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
       -e ECLIPSE_CHE_URL=http://codeready-labs-infra.$HOSTNAME_SUFFIX \
       -e KEYCLOAK_URL=http://keycloak-labs-infra.$HOSTNAME_SUFFIX \
       -e ROUTE_SUBDOMAIN=$HOSTNAME_SUFFIX \
-      -e CONTENT_URL_PREFIX="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/ocp-4.2" \
-      -e WORKSHOPS_URLS="https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2$MODULE-guides/ocp-4.2/_cloud-native-workshop-module$MODULE_NO.yml" \
+      -e CONTENT_URL_PREFIX="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/ocp-4.2/" \
+      -e WORKSHOPS_URLS="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/ocp-4.2/_cloud-native-workshop-module$MODULE_NO.yml" \
       -e CHE_USER_NAME=userXX \
       -e CHE_USER_PASSWORD=${USER_PWD} \
       -e OPENSHIFT_USER_NAME=userXX \
@@ -456,7 +457,7 @@ SSO_TOKEN=$(curl -s -d "username=${KEYCLOAK_USER}&password=${KEYCLOAK_PASSWORD}&
   jq  -r '.access_token')
 
 # Import realm
-wget https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.2/files/ccnrd-realm.json
+wget http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2-infra/raw/dev-ocp-4.2/files/ccnrd-realm.json
 curl -v -H "Authorization: Bearer ${SSO_TOKEN}" -H "Content-Type:application/json" -d @ccnrd-realm.json \
   -X POST "http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/admin/realms"
 rm -rf cnrd-realm.json
@@ -477,7 +478,7 @@ SSO_CHE_TOKEN=$(curl -s -d "username=admin&password=admin&grant_type=password&cl
   -X POST http://keycloak-labs-infra.$HOSTNAME_SUFFIX/auth/realms/codeready/protocol/openid-connect/token | \
   jq  -r '.access_token')
 
-wget https://raw.githubusercontent.com/RedHat-Middleware-Workshops/cloud-native-workshop-v2-infra/ocp-4.2/files/stack-ccn.json
+wget http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2-infra/raw/dev-ocp-4.2/files/stack-ccn.json
 STACK_RESULT=$(curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
     --header "Authorization: Bearer ${SSO_CHE_TOKEN}" -d @stack-ccn.json \
     "http://codeready-labs-infra.$HOSTNAME_SUFFIX/api/stack")
