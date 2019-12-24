@@ -9,7 +9,7 @@ function usage() {
 
 # Defaults
 USERCOUNT=2
-MODULE_TYPE=m1,m2,m3,m4
+MODULE_TYPE=m1
 REQUESTED_CPU=100m
 REQUESTED_MEMORY=1Gi
 USER_PWD=openshift
