@@ -45,7 +45,7 @@ metadata:
       ]
     capabilities: Seamless Upgrades
     olm.operatorNamespace: labs-infra
-    containerImage: 'registry.redhat.io/codeready-workspaces/server-operator-rhel8:1.2'
+    containerImage: 'registry.redhat.ren/registry.redhat.io/codeready-workspaces/server-operator-rhel8:1.2'
     createdAt: '2019-06-03T11:59:59Z'
     categories: Developer Tools
     description: >-
@@ -159,7 +159,7 @@ spec:
                       - name: OPERATOR_NAME
                         value: codeready-operator
                     image: >-
-                      registry.redhat.io/codeready-workspaces/server-operator-rhel8:1.2
+                      registry.redhat.ren/registry.redhat.io/codeready-workspaces/server-operator-rhel8:1.2
                     imagePullPolicy: IfNotPresent
                     name: codeready-operator
                     ports:
@@ -398,3 +398,4 @@ spec:
     ``` oc create secret self-signed-certificate generic
     --from-file=/path/to/certificate/ca.crt -n=$codeReadyNamespace ```
   replaces: crwoperator.v1.2.0
+  minKubeVersion: 1.11.3

@@ -72,7 +72,7 @@ objects:
             value: ${JENKINS_SERVICE_NAME}
           - name: JNLP_SERVICE_NAME
             value: ${JNLP_SERVICE_NAME}
-          image: ' '
+          image: ${JENKINS_IMAGE_STREAM_TAG}
           imagePullPolicy: IfNotPresent
           livenessProbe:
             failureThreshold: 2

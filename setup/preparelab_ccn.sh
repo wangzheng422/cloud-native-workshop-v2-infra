@@ -10,10 +10,10 @@ function usage() {
 # Defaults
 USERCOUNT=2
 MODULE_TYPE=m1,m2
-# REQUESTED_CPU=2
-# REQUESTED_MEMORY=4Gi
-REQUESTED_CPU=100m
-REQUESTED_MEMORY=1Gi
+REQUESTED_CPU=2
+REQUESTED_MEMORY=4Gi
+# REQUESTED_CPU=100m
+# REQUESTED_MEMORY=1Gi
 USER_PWD=openshift
 
 POSITIONAL=()
@@ -277,7 +277,7 @@ fi
 # deploy guides
 for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
   MODULE_NO=$(echo $MODULE | cut -c 2)
-  oc -n labs-infra new-app quay.io/osevg/workshopper --name=guides-$MODULE \
+  oc -n labs-infra new-app registry.redhat.ren/quay.io/osevg/workshopper --name=guides-$MODULE \
       -e MASTER_URL=$MASTER_URL \
       -e CONSOLE_URL=$CONSOLE_URL \
       -e ECLIPSE_CHE_URL=http://codeready-labs-infra.$HOSTNAME_SUFFIX \
@@ -393,6 +393,80 @@ oc delete project $TMP_PROJ
 
 # Install CodeReady Workspace
 echo -e "Installing CodeReady Workspace...\n"
+
+oc project labs-infra
+oc create sa codeready-operator
+
+cat <<EOF | oc apply -f -
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: codeready-operator
+rules:
+  - apiGroups:
+      - extensions/v1beta1
+    resources:
+      - ingresses
+    verbs:
+      - '*'
+  - apiGroups:
+      - route.openshift.io
+    resources:
+      - routes
+    verbs:
+      - '*'
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs:
+      - '*'
+  - apiGroups:
+      - ''
+    resources:
+      - pods
+      - services
+      - serviceaccounts
+      - endpoints
+      - persistentvolumeclaims
+      - events
+      - configmaps
+      - secrets
+      - pods/exec
+      - pods/log
+    verbs:
+      - '*'
+  - apiGroups:
+      - ''
+    resources:
+      - namespaces
+    verbs:
+      - get
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - '*'
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - servicemonitors
+    verbs:
+      - get
+      - create
+  - apiGroups:
+      - org.eclipse.che
+    resources:
+      - '*'
+    verbs:
+      - '*'
+EOF
+
+
 # oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v2.0.0.yaml
 oc apply -f ${MYDIR}/../files/codeready-operator-group.yaml
 oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v1.2.2.yaml
