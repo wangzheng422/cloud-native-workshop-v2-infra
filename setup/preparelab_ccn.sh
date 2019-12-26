@@ -72,7 +72,7 @@ done
 
 oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config
 
-oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config --dry-run -o yaml | oc apply -f -
+# oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config --dry-run -o yaml | oc apply -f -
 
 cat << EOF > htpass.yaml 
 apiVersion: config.openshift.io/v1

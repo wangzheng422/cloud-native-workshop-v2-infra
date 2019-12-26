@@ -12,6 +12,15 @@ if [ ! "$(oc get clusterrolebindings)" ] ; then
   exit 1
 fi
 
+########################
+## add my wzh
+
+oc delete -f htpass.yaml 
+oc delete secret generic htpass-secret -n openshift-config
+
+## 
+##########################
+
 oc delete -n istio-system -f ${MYDIR}/../files/istio-installation.yaml
 oc delete -n istio-system -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
 
@@ -37,7 +46,7 @@ for proj in $(oc get projects -o name | grep 'user*' | cut -d/ -f2) ; do
 done
 
 # scale back down
-for i in $(oc get machinesets -n openshift-machine-api -o name | grep worker| cut -d'/' -f 2) ; do
-  echo "Scaling $i to 1 replica"
-  oc patch -n openshift-machine-api machineset/$i -p '{"spec":{"replicas": 1}}' --type=merge
-done
+# for i in $(oc get machinesets -n openshift-machine-api -o name | grep worker| cut -d'/' -f 2) ; do
+#   echo "Scaling $i to 1 replica"
+#   oc patch -n openshift-machine-api machineset/$i -p '{"spec":{"replicas": 1}}' --type=merge
+# done
