@@ -52,6 +52,50 @@ if [ ! "$(oc get clusterrolebindings)" ] ; then
   exit 1
 fi
 
+##############
+## add by wzh
+
+oc patch -n openshift is jboss-eap72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.0\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/jboss-eap-7/eap72-openshift:1.0\"}}]}}"
+oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"10\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/rhscl/postgresql-10-rhel7:latest\"}}]}}"
+oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"9.6\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/rhscl/postgresql-96-rhel7:1-47\"}}]}}"
+
+# oc import-image --all jboss-eap72-openshift -n openshift
+
+htpasswd -c -B -b users.htpasswd admin redhat
+
+for i in $(eval echo "{0..$USERCOUNT}") ; do
+  htpasswd -b users.htpasswd user$i ${USER_PWD}
+  echo -n .
+  sleep 2
+done
+
+
+oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config
+
+oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config --dry-run -o yaml | oc apply -f -
+
+cat << EOF > htpass.yaml 
+apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+spec:
+  identityProviders:
+  - name: my_htpasswd_provider
+    mappingMethod: claim
+    type: HTPasswd
+    htpasswd:
+      fileData:
+        name: htpass-secret
+EOF
+oc apply -f htpass.yaml 
+
+# oc adm policy add-cluster-role-to-user cluster-admin admin
+
+## end add by wzh
+#################
+
+
 # Make the admin as cluster admin
 oc adm policy add-cluster-role-to-user cluster-admin $(oc whoami)
 
@@ -283,8 +327,8 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
       -e ECLIPSE_CHE_URL=http://codeready-labs-infra.$HOSTNAME_SUFFIX \
       -e KEYCLOAK_URL=http://keycloak-labs-infra.$HOSTNAME_SUFFIX \
       -e ROUTE_SUBDOMAIN=$HOSTNAME_SUFFIX \
-      -e CONTENT_URL_PREFIX="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/ocp-4.2/" \
-      -e WORKSHOPS_URLS="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/ocp-4.2/_cloud-native-workshop-module$MODULE_NO.yml" \
+      -e CONTENT_URL_PREFIX="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/master/" \
+      -e WORKSHOPS_URLS="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/master/_cloud-native-workshop-module$MODULE_NO.yml" \
       -e CHE_USER_NAME=userXX \
       -e CHE_USER_PASSWORD=${USER_PWD} \
       -e OPENSHIFT_USER_NAME=userXX \
@@ -395,7 +439,7 @@ oc delete project $TMP_PROJ
 echo -e "Installing CodeReady Workspace...\n"
 
 oc project labs-infra
-oc create sa codeready-operator
+# oc create sa codeready-operator
 
 cat <<EOF | oc apply -f -
 apiVersion: rbac.authorization.k8s.io/v1
@@ -466,6 +510,8 @@ rules:
       - '*'
 EOF
 
+# oc create clusterrole codeready-operator --resource=oauthclients --verb=get,create,delete,update,list,watch
+# oc create clusterrolebinding codeready-operator --clusterrole=codeready-operator --serviceaccount=${NAMESPACE}:codeready-operator
 
 # oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v2.0.0.yaml
 oc apply -f ${MYDIR}/../files/codeready-operator-group.yaml
