@@ -9,7 +9,7 @@ function usage() {
 
 # Defaults
 USERCOUNT=2
-MODULE_TYPE=m1,m2
+MODULE_TYPE=m1,m2,m3
 REQUESTED_CPU=2
 REQUESTED_MEMORY=4Gi
 # REQUESTED_CPU=100m
@@ -58,6 +58,8 @@ fi
 oc patch -n openshift is jboss-eap72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.0\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/jboss-eap-7/eap72-openshift:1.0\"}}]}}"
 oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"10\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/rhscl/postgresql-10-rhel7:latest\"}}]}}"
 oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"9.6\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/rhscl/postgresql-96-rhel7:1-47\"}}]}}"
+oc patch -n openshift is redhat-sso72-openshift
+ -p "{\"spec\":{\"tags\":[{ \"name\":\"1.2\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/redhat-sso-7/sso72-openshift:1.2\"}}]}}"
 
 # oc import-image --all jboss-eap72-openshift -n openshift
 
@@ -69,7 +71,7 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
   sleep 2
 done
 
-
+oc delete secret generic htpass-secret -n openshift-config
 oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config
 
 # oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config --dry-run -o yaml | oc apply -f -
