@@ -72,7 +72,7 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
   sleep 2
 done
 
-oc delete secret generic htpass-secret -n openshift-config
+oc delete secret htpass-secret -n openshift-config
 oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config
 
 # oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config --dry-run -o yaml | oc apply -f -
