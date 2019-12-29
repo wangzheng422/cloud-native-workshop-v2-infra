@@ -62,6 +62,7 @@ oc patch -n openshift is redhat-sso72-openshift
  -p "{\"spec\":{\"tags\":[{ \"name\":\"1.2\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/redhat-sso-7/sso72-openshift:1.2\"}}]}}"
 
 # oc import-image --all jboss-eap72-openshift -n openshift
+# oc import-image --all postgresql -n openshift
 
 htpasswd -c -B -b users.htpasswd admin redhat
 
@@ -152,8 +153,9 @@ fi
 # Setup Istio Service Mesh
 if [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
   echo -e "Installing OpenShift Service Mesh..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.3.yaml
-  oc apply -f ${MYDIR}/../files/subscription-servicemeshoperator.yaml
+  echo -e "you have to follow offical docs to install service mesh first..."
+  # oc apply -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.3.yaml
+  # oc apply -f ${MYDIR}/../files/subscription-servicemeshoperator.yaml
   echo -e "Deploying Service Mesh Control Plane and Membber Roll..."
   oc new-project istio-system
   oc delete limitranges/istio-system-core-resource-limits -n istio-system
