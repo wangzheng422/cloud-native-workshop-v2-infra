@@ -195,13 +195,13 @@ done
 # Install Custom Resource Definitions, Knative Serving, Knative Eventing
 if [ -z "${MODULE_TYPE##*m4*}" ] ; then
   echo -e "Installing OpenShift Serverless..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.2.0.yaml
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-serverless-operator.v1.3.0.yaml
   oc apply -f ${MYDIR}/../files/subscription-serverless-operator.yaml
   oc new-project knative-serving
   oc apply -f ${MYDIR}/../files/knativeserving-knative-serving.yaml
 
   echo -e "Installing Knative Eventing..."
-  oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-eventing-operator.v0.9.0.yaml
+  oc apply -f ${MYDIR}/../files/clusterserviceversion-knative-eventing-operator.v0.10.0.yaml
   oc apply -f ${MYDIR}/../files/subscription-knative-eventing-operator.yaml
 
 echo -e "Creating Role, Group, and assign Users"
@@ -648,6 +648,21 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
     "http://codeready-labs-infra.${HOSTNAME_SUFFIX}/api/workspace?start-after-create=true&namespace=user${i}"
     rm -f $TMPWORK
 done
+
+# Recheck if SMMR, SMCP already is created
+if [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
+  oc get ServiceMeshControlPlane -n istio-system
+  RESULT=$?
+  if [ $RESULT -eq 0 ]; then
+    oc apply -f ${MYDIR}/../files/istio-installation.yaml
+    oc apply -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
+  else
+    echo -e "SMMR, SMCP already is created...\n"
+  fi
+fi
+
+POD_NUM=$(printf "%.0f\n" ${USERCOUNT}/2)
+oc scale -n labs-infra dc/rhamt-web-console-executor --replicas=${POD_NUM}
 
 end_time=$SECONDS
 elapsed_time_sec=$(( end_time - start_time ))
