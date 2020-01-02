@@ -58,8 +58,8 @@ fi
 oc patch -n openshift is jboss-eap72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.0\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/jboss-eap-7/eap72-openshift:1.0\"}}]}}"
 oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"10\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/rhscl/postgresql-10-rhel7:latest\"}}]}}"
 oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"9.6\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/rhscl/postgresql-96-rhel7:1-47\"}}]}}"
-oc patch -n openshift is redhat-sso72-openshift
- -p "{\"spec\":{\"tags\":[{ \"name\":\"1.2\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/redhat-sso-7/sso72-openshift:1.2\"}}]}}"
+oc patch -n openshift is redhat-sso72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.2\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/redhat-sso-7/sso72-openshift:1.2\"}}]}}"
+oc patch -n openshift is redhat-openjdk18-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.5\",\"from\":{\"name\":\"registry.redhat.ren/registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift:1.5\"}}]}}"
 
 # oc import-image --all jboss-eap72-openshift -n openshift
 # oc import-image --all postgresql -n openshift
@@ -159,8 +159,8 @@ if [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
   echo -e "Deploying Service Mesh Control Plane and Membber Roll..."
   oc new-project istio-system
   oc delete limitranges/istio-system-core-resource-limits -n istio-system
-  oc apply -f ${MYDIR}/../files/istio-installation.yaml
-  oc apply -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
+  # oc apply -f ${MYDIR}/../files/istio-installation.yaml
+  # oc apply -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
 fi
 
 # Create coolstore & bookinfo projects for each user
@@ -181,7 +181,14 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
     oc adm policy add-scc-to-user anyuid -z default -n user$i-bookinfo
     oc adm policy add-scc-to-user privileged -z default -n user$i-bookinfo
     oc adm policy add-role-to-user admin user$i -n user$i-bookinfo
-    oc adm policy add-role-to-user view user$i -n istio-system
+    # oc adm policy add-role-to-user view user$i -n istio-system
+
+    oc new-project user$i-smcp
+    oc adm policy add-scc-to-user anyuid -z default -n user$i-smcp
+    oc adm policy add-scc-to-user privileged -z default -n user$i-smcp
+    oc adm policy add-role-to-user admin user$i -n user$i-smcp
+    cat ${MYDIR}/../files/istio-installation.yaml | sed "s/{{istio-system}}/user$i-smcp/g" | oc apply -f -
+    cat ${MYDIR}/../files/servicemeshmemberroll-default.yaml | sed "s/{{istio-system}}/user$i-smcp/g" | sed "s/{{userXX-bookinfo}}/user$i-bookinfo/g" | sed "s/{{userXX-catalog}}/user$i-catalog/g" | sed "s/{{userXX-inventory}}/user$i-inventory/g" | oc apply -f -
   fi
   if [ -z "${MODULE_TYPE##*m4*}" ] ; then
     oc new-project user$i-cloudnativeapps
@@ -333,6 +340,7 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
       -e ROUTE_SUBDOMAIN=$HOSTNAME_SUFFIX \
       -e CONTENT_URL_PREFIX="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/master/" \
       -e WORKSHOPS_URLS="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/master/_cloud-native-workshop-module$MODULE_NO.yml" \
+      -e GIT_URL="http://gogs.redhat.ren:10080/root"
       -e CHE_USER_NAME=userXX \
       -e CHE_USER_PASSWORD=${USER_PWD} \
       -e OPENSHIFT_USER_NAME=userXX \
