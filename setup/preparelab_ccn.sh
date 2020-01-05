@@ -340,7 +340,7 @@ for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
       -e ROUTE_SUBDOMAIN=$HOSTNAME_SUFFIX \
       -e CONTENT_URL_PREFIX="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/master/" \
       -e WORKSHOPS_URLS="http://gogs.redhat.ren:10080/root/cloud-native-workshop-v2$MODULE-guides/raw/master/_cloud-native-workshop-module$MODULE_NO.yml" \
-      -e GIT_URL="http://gogs.redhat.ren:10080/root"
+      -e GIT_URL="http://gogs.redhat.ren:10080/root" \
       -e CHE_USER_NAME=userXX \
       -e CHE_USER_PASSWORD=${USER_PWD} \
       -e OPENSHIFT_USER_NAME=userXX \
