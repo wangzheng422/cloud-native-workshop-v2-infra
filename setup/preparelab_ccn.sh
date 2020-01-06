@@ -60,6 +60,10 @@ oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"10\",\
 oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"9.6\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/rhscl/postgresql-96-rhel7:1-47\"}}]}}"
 oc patch -n openshift is redhat-sso72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.2\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/redhat-sso-7/sso72-openshift:1.2\"}}]}}"
 oc patch -n openshift is redhat-openjdk18-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.5\",\"from\":{\"name\":\"registry.redhat.ren/registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift:1.5\"}}]}}"
+jenkins_image=grep "jenkins " /data/ocp4/release.txt  | awk '{print $2}' | sed 's/.*@sha256://'
+oc patch -n openshift is jenkins -p "{\"spec\":{\"tags\":[{ \"name\":\"2\",\"from\":{\"name\":\"registry.redhat.ren/ocp4/openshift4@sha256:${jenkins_image}\"}}]}}"
+oc patch -n openshift is jenkins -p "{\"spec\":{\"tags\":[{ \"name\":\"latest\",\"from\":{\"name\":\"registry.redhat.ren/ocp4/openshift4@sha256:${jenkins_image}\"}}]}}"
+
 
 # oc import-image --all jboss-eap72-openshift -n openshift
 # oc import-image --all postgresql -n openshift
