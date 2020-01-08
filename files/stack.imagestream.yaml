@@ -13,5 +13,5 @@ spec:
       version: "1.3"
     from:
       kind: DockerImage
-      name: registry.redhat.ren/docker.io/wangzheng422/cloudnative-workspaces-quarkus:1.3
+      name: registry.redhat.ren:5443/docker.io/wangzheng422/cloudnative-workspaces-quarkus:1.3
     name: "1.3"

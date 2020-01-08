@@ -2,6 +2,8 @@
 #
 # Prereqs: a running ocp 4 cluster, logged in as kubeadmin
 #
+set -x
+
 MYDIR="$( cd "$(dirname "$0")" ; pwd -P )"
 function usage() {
     echo "usage: $(basename $0) [-c/--count usercount] -m/--module-type module_type"
@@ -15,6 +17,9 @@ REQUESTED_MEMORY=4Gi
 # REQUESTED_CPU=100m
 # REQUESTED_MEMORY=1Gi
 USER_PWD=openshift
+
+LOCAL_REG='registry.redhat.ren:5443'
+OCP_VERION="4.2.10"
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -55,14 +60,14 @@ fi
 ##############
 ## add by wzh
 
-oc patch -n openshift is jboss-eap72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.0\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/jboss-eap-7/eap72-openshift:1.0\"}}]}}"
-oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"10\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/rhscl/postgresql-10-rhel7:latest\"}}]}}"
-oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"9.6\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/rhscl/postgresql-96-rhel7:1-47\"}}]}}"
-oc patch -n openshift is redhat-sso72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.2\",\"from\":{\"name\":\"registry.redhat.ren/registry.redhat.io/redhat-sso-7/sso72-openshift:1.2\"}}]}}"
-oc patch -n openshift is redhat-openjdk18-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.5\",\"from\":{\"name\":\"registry.redhat.ren/registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift:1.5\"}}]}}"
-jenkins_image=grep "jenkins " /data/ocp4/release.txt  | awk '{print $2}' | sed 's/.*@sha256://'
-oc patch -n openshift is jenkins -p "{\"spec\":{\"tags\":[{ \"name\":\"2\",\"from\":{\"name\":\"registry.redhat.ren/ocp4/openshift4@sha256:${jenkins_image}\"}}]}}"
-oc patch -n openshift is jenkins -p "{\"spec\":{\"tags\":[{ \"name\":\"latest\",\"from\":{\"name\":\"registry.redhat.ren/ocp4/openshift4@sha256:${jenkins_image}\"}}]}}"
+oc patch -n openshift is jboss-eap72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.0\",\"from\":{\"name\":\"${LOCAL_REG}/registry.redhat.io/jboss-eap-7/eap72-openshift:1.0\"}}]}}"
+oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"10\",\"from\":{\"name\":\"${LOCAL_REG}/registry.redhat.io/rhscl/postgresql-10-rhel7:latest\"}}]}}"
+oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"9.6\",\"from\":{\"name\":\"${LOCAL_REG}/registry.redhat.io/rhscl/postgresql-96-rhel7:1-47\"}}]}}"
+oc patch -n openshift is redhat-sso72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.2\",\"from\":{\"name\":\"${LOCAL_REG}/registry.redhat.io/redhat-sso-7/sso72-openshift:1.2\"}}]}}"
+oc patch -n openshift is redhat-openjdk18-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.5\",\"from\":{\"name\":\"${LOCAL_REG}/registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift:1.5\"}}]}}"
+jenkins_image=$(grep "jenkins " /root/ocp4/${OCP_VERION}/release.txt  | awk '{print $2}' | sed 's/.*@sha256://')
+oc patch -n openshift is jenkins -p "{\"spec\":{\"tags\":[{ \"name\":\"2\",\"from\":{\"name\":\"${LOCAL_REG}/ocp4/openshift4@sha256:${jenkins_image}\"}}]}}"
+# oc patch -n openshift is jenkins -p "{\"spec\":{\"tags\":[{ \"name\":\"latest\",\"from\":{\"name\":\"${LOCAL_REG}/ocp4/openshift4@sha256:${jenkins_image}\"}}]}}"
 
 
 # oc import-image --all jboss-eap72-openshift -n openshift
@@ -336,7 +341,7 @@ fi
 # deploy guides
 for MODULE in $(echo $MODULE_TYPE | sed "s/,/ /g") ; do
   MODULE_NO=$(echo $MODULE | cut -c 2)
-  oc -n labs-infra new-app registry.redhat.ren/quay.io/osevg/workshopper --name=guides-$MODULE \
+  oc -n labs-infra new-app --docker-image=${LOCAL_REG}/quay.io/osevg/workshopper --name=guides-$MODULE \
       -e MASTER_URL=$MASTER_URL \
       -e CONSOLE_URL=$CONSOLE_URL \
       -e ECLIPSE_CHE_URL=http://codeready-labs-infra.$HOSTNAME_SUFFIX \
@@ -455,7 +460,7 @@ oc delete project $TMP_PROJ
 echo -e "Installing CodeReady Workspace...\n"
 
 oc project labs-infra
-# oc create sa codeready-operator
+oc create sa codeready-operator
 
 cat <<EOF | oc apply -f -
 apiVersion: rbac.authorization.k8s.io/v1
@@ -527,7 +532,10 @@ rules:
 EOF
 
 # oc create clusterrole codeready-operator --resource=oauthclients --verb=get,create,delete,update,list,watch
-# oc create clusterrolebinding codeready-operator --clusterrole=codeready-operator --serviceaccount=${NAMESPACE}:codeready-operator
+oc create clusterrolebinding codeready-operator --clusterrole=codeready-operator --serviceaccount=labs-infra:codeready-operator
+
+oc create role secret-reader --resource=secrets --verb=get -n=openshift-ingress
+oc create rolebinding codeready-operator --role=secret-reader --serviceaccount=labs-infra:codeready-operator -n=openshift-ingress
 
 # oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v2.0.0.yaml
 oc apply -f ${MYDIR}/../files/codeready-operator-group.yaml
