@@ -689,8 +689,8 @@ done
 #   fi
 # fi
 
-POD_NUM=$(printf "%.0f\n" ${USERCOUNT}/2)
-oc scale -n labs-infra dc/rhamt-web-console-executor --replicas=${POD_NUM}
+# POD_NUM=$(printf "%.0f\n" ${USERCOUNT}/2)
+# oc scale -n labs-infra dc/rhamt-web-console-executor --replicas=${POD_NUM}
 
 end_time=$SECONDS
 elapsed_time_sec=$(( end_time - start_time ))

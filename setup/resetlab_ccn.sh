@@ -25,7 +25,7 @@ oc delete secret generic htpass-secret -n openshift-config
 # oc delete -n istio-system -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
 
 # oc delete project labs-infra istio-system knative-eventing knative-serving
-oc delete project labs-infra 
+oc delete project labs-infra jenkins
 oc delete template coolstore-monolith-binary-build coolstore-monolith-pipeline-build ccn-sso72 -n openshift
 
 oc delete -f ${MYDIR}/../files/clusterserviceversion-servicemeshoperator.v1.0.2.yaml
