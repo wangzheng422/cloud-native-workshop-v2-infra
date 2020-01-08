@@ -539,6 +539,7 @@ oc policy add-role-to-user codeready-operator system:serviceaccount:labs-infra:c
 # oc create rolebinding codeready-operator --role=secret-reader --serviceaccount=labs-infra:codeready-operator -n=openshift-ingress
 
 # oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v2.0.0.yaml
+oc apply -f ${MYDIR}/../files/org_v1_che_crd.yaml
 oc apply -f ${MYDIR}/../files/codeready-operator-group.yaml
 oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v1.2.2.yaml
 oc apply -f ${MYDIR}/../files/subscription-codeready-workspaces.yaml
@@ -677,16 +678,16 @@ for i in $(eval echo "{0..$USERCOUNT}") ; do
 done
 
 # Recheck if SMMR, SMCP already is created
-if [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
-  oc get ServiceMeshControlPlane -n istio-system
-  RESULT=$?
-  if [ $RESULT -eq 0 ]; then
-    oc apply -f ${MYDIR}/../files/istio-installation.yaml
-    oc apply -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
-  else
-    echo -e "SMMR, SMCP already is created...\n"
-  fi
-fi
+# if [ -z "${MODULE_TYPE##*m3*}" ] || [ -z "${MODULE_TYPE##*m4*}" ] ; then
+#   oc get ServiceMeshControlPlane -n istio-system
+#   RESULT=$?
+#   if [ $RESULT -eq 0 ]; then
+#     oc apply -f ${MYDIR}/../files/istio-installation.yaml
+#     oc apply -f ${MYDIR}/../files/servicemeshmemberroll-default.yaml
+#   else
+#     echo -e "SMMR, SMCP already is created...\n"
+#   fi
+# fi
 
 POD_NUM=$(printf "%.0f\n" ${USERCOUNT}/2)
 oc scale -n labs-infra dc/rhamt-web-console-executor --replicas=${POD_NUM}
