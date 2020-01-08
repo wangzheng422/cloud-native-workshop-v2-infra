@@ -533,14 +533,21 @@ EOF
 
 # oc create clusterrole codeready-operator --resource=oauthclients --verb=get,create,delete,update,list,watch
 oc create clusterrolebinding codeready-operator --clusterrole=codeready-operator --serviceaccount=labs-infra:codeready-operator
+oc policy add-role-to-user codeready-operator system:serviceaccount:labs-infra:codeready-operator
 
-oc create role secret-reader --resource=secrets --verb=get -n=openshift-ingress
-oc create rolebinding codeready-operator --role=secret-reader --serviceaccount=labs-infra:codeready-operator -n=openshift-ingress
+# oc create role secret-reader --resource=secrets --verb=get -n=openshift-ingress
+# oc create rolebinding codeready-operator --role=secret-reader --serviceaccount=labs-infra:codeready-operator -n=openshift-ingress
 
 # oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v2.0.0.yaml
 oc apply -f ${MYDIR}/../files/codeready-operator-group.yaml
 oc apply -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v1.2.2.yaml
 oc apply -f ${MYDIR}/../files/subscription-codeready-workspaces.yaml
+
+# oc delete -f ${MYDIR}/../files/subscription-codeready-workspaces.yaml
+# oc delete -f ${MYDIR}/../files/clusterserviceversion-crwoperator.v1.2.2.yaml
+# oc delete -f ${MYDIR}/../files/codeready-operator-group.yaml
+
+
 
 # Wait for checluster to be a thing
 echo "Waiting for CheCluster CRDs"
