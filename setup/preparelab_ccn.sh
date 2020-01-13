@@ -65,8 +65,12 @@ oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"10\",\
 oc patch -n openshift is postgresql -p "{\"spec\":{\"tags\":[{ \"name\":\"9.6\",\"from\":{\"name\":\"${LOCAL_REG}/registry.redhat.io/rhscl/postgresql-96-rhel7:1-47\"}}]}}"
 oc patch -n openshift is redhat-sso72-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.2\",\"from\":{\"name\":\"${LOCAL_REG}/registry.redhat.io/redhat-sso-7/sso72-openshift:1.2\"}}]}}"
 oc patch -n openshift is redhat-openjdk18-openshift -p "{\"spec\":{\"tags\":[{ \"name\":\"1.5\",\"from\":{\"name\":\"${LOCAL_REG}/registry.access.redhat.com/redhat-openjdk-18/openjdk18-openshift:1.5\"}}]}}"
+
 jenkins_image=$(grep "jenkins " /root/ocp4/${OCP_VERION}/release.txt  | awk '{print $2}' | sed 's/.*@sha256://')
 oc patch -n openshift is jenkins -p "{\"spec\":{\"tags\":[{ \"name\":\"2\",\"from\":{\"name\":\"${LOCAL_REG}/ocp4/openshift4@sha256:${jenkins_image}\"}}]}}"
+
+jenkins_agent_maven_image=$(grep "jenkins-agent-maven " /root/ocp4/${OCP_VERION}/release.txt  | awk '{print $2}' | sed 's/.*@sha256://')
+oc patch -n openshift is jenkins-agent-maven -p "{\"spec\":{\"tags\":[{ \"name\":\"v4.0\",\"from\":{\"name\":\"${LOCAL_REG}/ocp4/openshift4@sha256:${jenkins_agent_maven_image}\"}}]}}"
 # oc patch -n openshift is jenkins -p "{\"spec\":{\"tags\":[{ \"name\":\"latest\",\"from\":{\"name\":\"${LOCAL_REG}/ocp4/openshift4@sha256:${jenkins_image}\"}}]}}"
 
 
